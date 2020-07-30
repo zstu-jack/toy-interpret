@@ -1,12 +1,10 @@
-#include <bits/stdc++.h>
-
 #include "evaluate.h"
 #include "utils.h"
 #include "define.h"
 #include "parser.h"
 
 std::vector<Token *> tokens_;
-int32_t consumed_index_;
+size_t consumed_index_;
 Env env_;
 
 std::map<ASTType, std::string> asttype_2_str_ = {
@@ -44,7 +42,7 @@ Symbol::Symbol(){
 }
 
 std::string Symbol::tostring(){
-
+    return "";
 }
 
 AST::AST(ASTType type){
@@ -66,7 +64,8 @@ std::string AST::last_value(){
 }
 Token* AST::next(TokenType token_type){
     ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == static_cast<int>(token_type),"consumed_index=%d, expected 【%s】 but got 【%s】",
-            consumed_index_,tokentype_2_string[(TokenType)token_type].c_str(), tokentype_2_string[(TokenType)tokens_[consumed_index_]->token_type_].c_str());
+                (int32_t)consumed_index_,tokentype_2_string[(TokenType)token_type].c_str(),
+                tokentype_2_string[(TokenType)tokens_[consumed_index_]->token_type_].c_str());
     return tokens_[consumed_index_ ++];
 }
 
@@ -195,7 +194,7 @@ void AST::args(AST* ast){
         auto token = next(TokenType::SYMBOL);
         ast->sub_asts_.push_back(new AST(ASTType::AST_SYM));
         ast->sub_asts_.back()->ast_value_.str = token->values_;
-        ASSERT_EXIT(keywords_token.count(token->values_) == 0, "unexpected keyword(%s) in function args(i)\n", token->values_.c_str(), i);
+        ASSERT_EXIT(keywords_token.count(token->values_) == 0, "unexpected keyword(%s) in function args(%d)\n", token->values_.c_str(), i);
         if(peek() == TokenType::RIGHT_PARENTHESIS){
             break;
         }
@@ -339,7 +338,7 @@ AST* AST::build(std::vector<Token *> &tokens) {
 void AST::print(AST* ast){
     printf("%s\n", asttype_2_str_[ast->ast_type_].c_str());
     for(size_t i = 0; i < ast->sub_asts_.size(); ++ i){
-        printf("    %d,%s\n", i, asttype_2_str_[ast->sub_asts_[i]->ast_type_].c_str());
+        printf("    %d,%s\n", (int32_t)i, asttype_2_str_[ast->sub_asts_[i]->ast_type_].c_str());
     }
     printf("\n\n");
 }
@@ -373,11 +372,11 @@ void AST::print(int deep, AST* ast){
 
 void AST::eval_function(AST* ast){
     ASSERT_EXIT(env_.funcs_.count(ast->ast_value_.str) == 0, "function(%s) redefined", ast->ast_value_.str.c_str());
-    ASSERT_EXIT(ast->sub_asts_.size() == 2, "function(%s) sub nodes's size(%d)", ast->ast_value_.str.c_str(), ast->sub_asts_.size());
+    ASSERT_EXIT(ast->sub_asts_.size() == 2, "function(%s) sub nodes's size(%d)", ast->ast_value_.str.c_str(), (int32_t)ast->sub_asts_.size());
     auto& proto = env_.funcs_[ast->ast_value_.str];
     for(size_t i = 0; i < ast->sub_asts_[0]->sub_asts_.size(); i ++){
         ASSERT_EXIT(ast->sub_asts_[0]->sub_asts_[i]->ast_type_ == ASTType::AST_SYM, "arg(%d) not a symbol (type:%s)",
-                i, asttype_2_str_[ast->sub_asts_[0]->sub_asts_[i]->ast_type_].c_str());
+                    (int32_t)i, asttype_2_str_[ast->sub_asts_[0]->sub_asts_[i]->ast_type_].c_str());
         proto.args_symbol_.push_back(ast->sub_asts_[0]->sub_asts_[i]->ast_value_.str);
     }
     proto.ast = ast->sub_asts_[1];
@@ -393,8 +392,8 @@ int AST::eval_builtin(AST* ast){
 
     auto fname = ast->ast_value_.str;
     if(fname == "input"){ // TODO: check num/dec/string/char, treat input as num for instance.
-        for(int i = 0; i < ast->sub_asts_.size(); ++ i) {
-            int v; scanf("%d");
+        for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
+            int v; scanf("%d", &v);
             (*env)[ast->sub_asts_[i]->ast_value_.str].num = v;
             (*env)[ast->sub_asts_[i]->ast_value_.str].value_type_ = (int)ASTType ::AST_INTEGER;
         }
@@ -411,7 +410,7 @@ int AST::eval_builtin(AST* ast){
                 ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%d)(num=%d)(dec=%.2f)", name.c_str(), symbol.value_type_, symbol.num, symbol.dec);
             }
         };
-        for(int i = 0; i < ast->sub_asts_.size(); ++ i) {
+        for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
             print_sym("QAQ ", eval_exp(ast->sub_asts_[i]));
             printf("%c", i + 1 == ast->sub_asts_.size() ? '\n' : ' ');
         }
@@ -517,7 +516,7 @@ Symbol AST::eval_assign(AST* ast){
         hsh[symbol] = val;
         return val;
     }
-    env_.global_[symbol] = val;
+    return env_.global_[symbol] = val;
 }
 Symbol AST::eval_if(AST* ast){
     Symbol symbol;
@@ -536,7 +535,7 @@ Symbol AST::eval_call(AST* ast){
     }
 
     std::vector<Symbol> symbols;
-    for(int i = 0; i < ast->sub_asts_.size(); ++ i) {
+    for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
         Symbol tmp = eval_exp(ast->sub_asts_[i]);
         symbols.push_back(tmp);
     }
@@ -547,7 +546,7 @@ Symbol AST::eval_call(AST* ast){
     ASSERT_EXIT(env_.funcs_.count(fname), "use undefined symbol(%s)", fname.c_str());
     auto f = env_.funcs_[fname];
     ASSERT_EXIT(ast->sub_asts_.size() == f.args_symbol_.size(), "use undefined symbol(%s)", fname.c_str());
-    for(int i = 0; i < ast->sub_asts_.size(); ++ i) {
+    for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
         local[f.args_symbol_[i]] = symbols[i];
     }
     auto result_symbol = interpret(f.ast);

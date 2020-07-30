@@ -114,7 +114,7 @@ typedef struct AST{
 }AST;
 
 extern std::vector<Token *> tokens_;
-extern int32_t consumed_index_;
+extern size_t consumed_index_;
 extern std::map<ASTType, std::string> asttype_2_str_;
 extern Env env_;
 

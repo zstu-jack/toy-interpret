@@ -4,7 +4,7 @@
 #include "define.h"
 #include "evaluate.h"
 
-int32_t _p = 0, _lp = 0;
+size_t _p = 0, _lp = 0;
 
 Token::Token(int token_type_, const std::string& values_){ this->token_type_ = token_type_; this->values_ = values_; }
 
@@ -37,7 +37,7 @@ void Tokenizer::parse(const std::string& text){
         else if(is_operator(cp)){
             _p ++;
             if(text[_p] == '=') _p ++;
-            else if(_p < text.size() && cp == '|' || cp == '&' && text[_p] == cp) _p ++;
+            else if((_p < text.size() && cp == '|') || (cp == '&' && text[_p] == cp)) _p ++;
             std::string key = text.substr(_lp, _p-_lp);
             tokens_.push_back(new Token((int)op_char_token[key], key));
         }
@@ -46,7 +46,7 @@ void Tokenizer::parse(const std::string& text){
             std::string cstr(1, cp);
             tokens_.push_back(new Token(static_cast<int >(easy_char_token[cp]), cstr));
         }
-        else if(cp == ' ' || cp == '\t' || cp == '\n'){
+        else if(cp == ' ' || cp == '\t' || cp == '\n' || cp == '\r'){
             _p ++;
         }
         else{
@@ -54,6 +54,7 @@ void Tokenizer::parse(const std::string& text){
         }
         // ' "
     }
+    std::cout << _p << std::endl;
     // entire program for now.
     ASSERT_EXIT(_p == text.size(), "error. left string to be parsed:[%s]", text.substr(_p).c_str());
 }

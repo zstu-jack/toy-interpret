@@ -1,9 +1,11 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-#include <cstdio>
-#include <map>
+#include <vector>
 #include <set>
+#include <map>
+#include <cstdio>
+#include <functional>
 
 #define ASSERT_EXIT(COND, X, ...)\
     if(!(COND)) \

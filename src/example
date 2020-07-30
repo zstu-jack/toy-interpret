@@ -25,5 +25,5 @@ function fib(x){
     return fib(x-1) + fib(x-2);
 }
 
-x = fib(10);
+x = fib(20);
 print(x);
