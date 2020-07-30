@@ -4,15 +4,19 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include "define.h"
 
 class Token{
 public:
-    int token_type_;
+    TokenType token_type_;
     std::string values_;
-    Token(int token_type_, const std::string& values_);
+    int lines_;
+    Token(TokenType token_type_, const std::string& values_);
+    Token(TokenType token_type_, const std::string& values_, int line);
 };
 
 struct Tokenizer{
+    void incp(size_t& p);
     void parse(const std::string& text);
     void print();
 
@@ -22,7 +26,7 @@ struct Tokenizer{
     bool is_operator(char c);
 
     std::vector<Token*> tokens_;
-    int consumed_;
+    std::string program_;
 };
 
 

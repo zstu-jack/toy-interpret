@@ -5,6 +5,7 @@
 #include <string>
 #include <map>
 
+#include "define.h"
 
 struct AST;
 struct Token;
@@ -17,13 +18,14 @@ typedef struct FuncProto{
 
 typedef struct Symbol{
     Symbol();
+
     std::string str;
     int num;
     double dec;
     FuncProto func;
+    ASTType value_type_;
 
-    int value_type_;
-    int rflag_;
+    int return_flag_;
     std::string tostring();
 }Symbol;
 
@@ -34,38 +36,6 @@ struct Env{
     std::vector<Symbols> current_;
 };
 
-enum class ASTType{
-    AST_BLOCK,
-    // AST_STAT,
-    AST_ARGS,
-    AST_IF,
-    AST_FOR,
-    AST_ASSIGN,
-    AST_EXP,
-    AST_FUN,
-    AST_CALL,
-    AST_RETURN,
-    AST_SYM,
-    AST_INTEGER,
-    AST_DECIMAL,
-    AST_VOID,
-
-    // op
-    AST_AND,
-    AST_NOT_EQUAL,
-    AST_EQUAL,
-    AST_LESS_EQUAL,
-    AST_LARGER_EQUAL,
-    AST_LESS,
-    AST_LARGE,
-    AST_ADD,
-    AST_SUB,
-    AST_MUL,
-    AST_DIV,
-
-
-};
-
 
 typedef struct AST{
     AST();
@@ -73,26 +43,25 @@ typedef struct AST{
 
     std::vector<AST*> sub_asts_;
     ASTType ast_type_;
-    Symbol ast_value_;  // for simplify .
+    Symbol ast_value_;
 
     void print(AST* ast);
     void print(int deep, AST* ast);
-    AST* build(std::vector<Token*>& tokens);
 
-    TokenType peek();
-    std::string peekv();
+    TokenType peek_type();
+    std::string peek_value();
     Token* next(TokenType token_type);
     std::string last_value();
 
     void args(AST* ast);
-    void exp(AST* ast);
     void pass_args(AST* ast);
 
     void exp_elem(AST* ast);
     void exp_term(AST* ast);
     void exp_exp(AST* ast);
+    void exp(AST* ast);
 
-    void stat(AST* ast);
+    void stat(AST* ast);    // stats -> stat | stat {stats}
     void stat_if(AST *ast);
     void stat_for(AST *ast);
     void stat_exp(AST *ast);
@@ -101,6 +70,7 @@ typedef struct AST{
     void stat_brace(AST *ast);
     void stat_print(AST *ast);
     void stat_input(AST *ast);
+    AST* build(std::vector<Token*>& tokens);
 
     int    eval_builtin(AST* ast);
     void   eval_function(AST* ast);
@@ -115,7 +85,6 @@ typedef struct AST{
 
 extern std::vector<Token *> tokens_;
 extern size_t consumed_index_;
-extern std::map<ASTType, std::string> asttype_2_str_;
 extern Env env_;
 
 #endif //EVALUATE_H
