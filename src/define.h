@@ -49,7 +49,7 @@ enum class TokenType{
     SEMICOLON,
     COMMA,
 
-    KEY_FOR,
+    KEY_WHILE,
     KEY_IF,
     KEY_FUNCTION,
     KEY_RETURN,
@@ -78,7 +78,7 @@ enum class ASTType{
     AST_EXP,
 
     AST_IF,
-    AST_FOR,
+    AST_WHILE,
     AST_ASSIGN,
 
     AST_ARGS,

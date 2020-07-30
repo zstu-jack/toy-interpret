@@ -184,21 +184,19 @@ void AST::stat_if(AST *ast) {
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
 }
-void AST::stat_for(AST *ast) {
-    //          for
-    // init_exp, exp, iter_exp, block.
+void AST::stat_while(AST *ast) {
+    //        for
+    // init?, ?, ?, block.
+
+    //        while
+    // exp          block;
 
     // expressions: should contains operand and operator(missing)
-    ast->ast_type_ = ASTType ::AST_FOR;
+    ast->ast_type_ = ASTType ::AST_WHILE;
     next(TokenType::LEFT_PARENTHESIS);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
     ast->exp(ast->sub_asts_.back());
-    next(TokenType::SEMICOLON);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-    ast->exp(ast->sub_asts_.back());
-    next(TokenType::SEMICOLON);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-    ast->exp(ast->sub_asts_.back());
+
     next(TokenType::RIGHT_PARENTHESIS);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
@@ -214,10 +212,8 @@ void AST::stat_function(AST *ast) {
     ast->args(ast->sub_asts_.back());
     next(TokenType::RIGHT_PARENTHESIS);
 
-    // next(TokenType::LEFT_BRACE);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
-    // next(TokenType::RIGHT_BRACE);
 }
 void AST::stat_exp(AST *ast) {
     //    assign
@@ -279,13 +275,11 @@ void AST::stat(AST* ast){
     auto* current = tokens_[consumed_index_ ++];
     static std::map<TokenType , std::function<void(AST*)>> cb = {
             {TokenType::KEY_IF, std::bind(&AST::stat_if, ast, std::placeholders::_1)},
-            {TokenType::KEY_FOR, std::bind(&AST::stat_for, ast, std::placeholders::_1)},
+            {TokenType::KEY_WHILE, std::bind(&AST::stat_while, ast, std::placeholders::_1)},
             {TokenType::KEY_FUNCTION, std::bind(&AST::stat_function, ast, std::placeholders::_1)},
             {TokenType::KEY_RETURN, std::bind(&AST::stat_return, ast, std::placeholders::_1)},
             {TokenType::LEFT_BRACE, std::bind(&AST::stat_brace, ast, std::placeholders::_1)},
             {TokenType::SYMBOL, std::bind(&AST::stat_exp, ast, std::placeholders::_1)},
-            {TokenType::BUILTIN_PRINT, std::bind(&AST::stat_print, ast, std::placeholders::_1)},
-            {TokenType::BUILTIN_INPUT, std::bind(&AST::stat_input, ast, std::placeholders::_1)},
     };
 
     ASSERT_EXIT(cb.count((TokenType)current->token_type_), "unexpected token: %d", static_cast<int>(current->token_type_));
@@ -340,7 +334,7 @@ void AST::print(int deep, AST* ast){
 
 // ------------------------------ interpret  ------------------------------
 
-void AST::eval_function(AST* ast){
+Symbol AST::eval_function(AST* ast){
     ASSERT_EXIT(env_.funcs_.count(ast->ast_value_.str) == 0, "function(%s) redefined", ast->ast_value_.str.c_str());
     ASSERT_EXIT(ast->sub_asts_.size() == 2, "function(%s) sub nodes's size(%d)", ast->ast_value_.str.c_str(), (int32_t)ast->sub_asts_.size());
     auto& proto = env_.funcs_[ast->ast_value_.str];
@@ -350,10 +344,13 @@ void AST::eval_function(AST* ast){
         proto.args_symbol_.push_back(ast->sub_asts_[0]->sub_asts_[i]->ast_value_.str);
     }
     proto.ast = ast->sub_asts_[1];
-    return ;
+    return {};
 }
 
-int AST::eval_builtin(AST* ast){
+Symbol AST::eval_builtin(AST* ast){
+
+    Symbol symbol{};
+    symbol.num = 1;
 
     auto* env = &env_.global_;
     if(env_.current_.size()){
@@ -361,13 +358,13 @@ int AST::eval_builtin(AST* ast){
     }
 
     auto fname = ast->ast_value_.str;
-    if(fname == "input"){ // TODO: check num/dec/string/char, treat input as num for instance.
+    if(fname == "input"){ // TODO: support more data type for input.
         for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
             int v; scanf("%d", &v);
             (*env)[ast->sub_asts_[i]->ast_value_.str].num = v;
             (*env)[ast->sub_asts_[i]->ast_value_.str].value_type_ = ASTType ::AST_INTEGER;
         }
-        return 1;
+        return symbol;
     }
     if(fname == "print"){
         auto print_sym = [](std::string name, const Symbol& symbol){
@@ -381,12 +378,13 @@ int AST::eval_builtin(AST* ast){
             }
         };
         for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
-            print_sym("QAQ ", eval_exp(ast->sub_asts_[i]));
+            print_sym("[QAQ]", eval_exp(ast->sub_asts_[i]));
             printf("%c", i + 1 == ast->sub_asts_.size() ? '\n' : ' ');
         }
-        return 1;
+        return symbol;
     }
-    return 0;
+    symbol.num = 0;
+    return symbol;
 }
 
 Symbol AST::eval_symbol(AST* ast){
@@ -411,7 +409,7 @@ Symbol AST::eval_exp(AST* ast){
         }
     };
 
-    // TODO: exp;
+    // TODO: wrapper exp and support more operate;
     Symbol result;
     if(ast->ast_type_ == ASTType::AST_EXP){
         return eval_exp(ast->sub_asts_[0]);
@@ -428,7 +426,6 @@ Symbol AST::eval_exp(AST* ast){
         result = eval_symbol(ast);
     }
     else if(ast->ast_type_ == ASTType::AST_ADD){
-        // TODO: more type. now only integer & decimal supported.
         Symbol left_operand = eval_exp(ast->sub_asts_[0]);
         Symbol right_operand = eval_exp(ast->sub_asts_[1]);
         if(left_operand.value_type_ != right_operand.value_type_){
@@ -442,7 +439,6 @@ Symbol AST::eval_exp(AST* ast){
         }
     }
     else if(ast->ast_type_ == ASTType::AST_SUB){
-        // TODO: more type. now only integer & decimal supported.
         Symbol left_operand = eval_exp(ast->sub_asts_[0]);
         Symbol right_operand = eval_exp(ast->sub_asts_[1]);
         if(left_operand.value_type_ != right_operand.value_type_){
@@ -488,6 +484,19 @@ Symbol AST::eval_assign(AST* ast){
     }
     return env_.global_[symbol] = val;
 }
+Symbol AST::eval_while(AST* ast){
+    Symbol symbol;
+    symbol.value_type_ = ASTType ::AST_VOID;
+    auto val = eval_exp(ast->sub_asts_[0]);
+    while (val.value_type_ == ASTType ::AST_INTEGER && val.num){
+        auto result = interpret(ast->sub_asts_[1]);
+        if(result.return_flag_){
+            return result;
+        }
+        val = eval_exp(ast->sub_asts_[0]);
+    }
+    return symbol;
+}
 Symbol AST::eval_if(AST* ast){
     Symbol symbol;
     symbol.value_type_ = ASTType ::AST_VOID;
@@ -499,8 +508,7 @@ Symbol AST::eval_if(AST* ast){
     return symbol;
 }
 Symbol AST::eval_call(AST* ast){
-    // TODO: temporary treatment
-    if(eval_builtin(ast)){
+    if(eval_builtin(ast).num){
         return Symbol{};
     }
 
@@ -525,26 +533,14 @@ Symbol AST::eval_call(AST* ast){
 }
 
 Symbol AST::interpret(AST* block) {
-    Symbol symbol;
+    Symbol symbol{};
     for(auto* ast : block->sub_asts_){
-        if(ast->ast_type_ == ASTType::AST_FUN){
-            eval_function(ast);
-        }
-        if(ast->ast_type_ == ASTType::AST_ASSIGN){
-            eval_assign(ast);
-        }
-        if(ast->ast_type_ == ASTType::AST_BLOCK){
-            interpret(ast);
-        }
-        if(ast->ast_type_ == ASTType::AST_CALL){
-            eval_call(ast);// TODO: check return.
-        }
-        if(ast->ast_type_ == ASTType::AST_IF){
-            auto result = eval_if(ast); // TODO: check return.
-            if(result.return_flag_){
-                return result;
-            }
-        }
+        if(ast->ast_type_ == ASTType::AST_FUN)    eval_function(ast);
+        if(ast->ast_type_ == ASTType::AST_ASSIGN) eval_assign(ast);
+        if(ast->ast_type_ == ASTType::AST_BLOCK)  symbol = interpret(ast);
+        if(ast->ast_type_ == ASTType::AST_CALL)   eval_call(ast);
+        if(ast->ast_type_ == ASTType::AST_IF)     symbol = eval_if(ast);
+        if(ast->ast_type_ == ASTType::AST_WHILE)  symbol = eval_while(ast);
         if(ast->ast_type_ == ASTType::AST_RETURN){
             if(!ast->sub_asts_.size()){
                 symbol.value_type_ = ASTType ::AST_VOID;
@@ -553,12 +549,12 @@ Symbol AST::interpret(AST* block) {
             }
             auto ret = eval_exp(ast->sub_asts_[0]);
             ret.return_flag_ = 1;
-
             return ret;
         }
+        if(symbol.return_flag_) return symbol;
     }
-    return symbol; // FIXME
+    return symbol;
     // FIXME: placeholder of print check.
-    // FIXME: arg name of function cover global.
     // FIXME: if(){} dele brace in script.
+    // TODO: enter block like(if/while) cover the local variable;
 }

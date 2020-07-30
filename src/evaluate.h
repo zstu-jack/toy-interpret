@@ -63,7 +63,7 @@ typedef struct AST{
 
     void stat(AST* ast);    // stats -> stat | stat {stats}
     void stat_if(AST *ast);
-    void stat_for(AST *ast);
+    void stat_while(AST *ast);
     void stat_exp(AST *ast);
     void stat_return(AST *ast);
     void stat_function(AST *ast);
@@ -72,12 +72,13 @@ typedef struct AST{
     void stat_input(AST *ast);
     AST* build(std::vector<Token*>& tokens);
 
-    int    eval_builtin(AST* ast);
-    void   eval_function(AST* ast);
+    Symbol eval_builtin(AST* ast);
+    Symbol eval_function(AST* ast);
     Symbol eval_symbol(AST* ast);
-    Symbol eval_exp(AST* ast);
+    Symbol eval_exp(AST* ast);          // TODO
     Symbol eval_assign(AST* ast);
     Symbol eval_if(AST* ast);
+    Symbol eval_while(AST* ast);
     Symbol eval_call(AST* ast);
     Symbol interpret(AST* ast);
 
