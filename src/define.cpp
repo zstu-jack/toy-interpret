@@ -3,21 +3,10 @@
 std::map<std::string, TokenType> keywords_token = {
         {"function", TokenType::KEY_FUNCTION},
         {"if", TokenType::KEY_IF},
-        {"for", TokenType::KEY_FOR},
+        {"while", TokenType::KEY_WHILE},
         {"return",TokenType::KEY_RETURN},
 };
-
 std::string op_keywords = std::string("=!<>+-*/|&");
-
-std::map<char, TokenType> easy_char_token = {
-        {'{', TokenType ::LEFT_BRACE},
-        {'}', TokenType ::RIGHT_BRACE},
-        {'(', TokenType ::LEFT_PARENTHESIS},
-        {')', TokenType ::RIGHT_PARENTHESIS},
-        {';', TokenType ::SEMICOLON},
-        {',', TokenType ::COMMA},
-};
-
 std::map<std::string, TokenType> op_char_token = {
         {"=", TokenType ::OP_ASSIGN},
         {"!=", TokenType ::OP_NOT_EQUAL},
@@ -35,7 +24,16 @@ std::map<std::string, TokenType> op_char_token = {
         {"*", TokenType ::OP_MUL},
         {"/", TokenType ::OP_DIV},
 };
+std::map<std::string, TokenType> easy_char_token = {
+        {"{", TokenType ::LEFT_BRACE},
+        {"}", TokenType ::RIGHT_BRACE},
+        {"(", TokenType ::LEFT_PARENTHESIS},
+        {")", TokenType ::RIGHT_PARENTHESIS},
+        {";", TokenType ::SEMICOLON},
+        {",", TokenType ::COMMA},
+};
 
+// following symbol just for debug...
 std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::SYMBOL, "symbol"},
         {TokenType ::INTEGER, "integer"},
@@ -46,7 +44,7 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::RIGHT_BRACE, "}"},
         {TokenType ::SEMICOLON, ";"},
         {TokenType ::COMMA, ","},
-        {TokenType ::KEY_FOR, "for"},
+        {TokenType ::KEY_WHILE, "while"},
         {TokenType ::KEY_IF, "if"},
         {TokenType ::KEY_FUNCTION, "function"},
         {TokenType ::KEY_RETURN, "return"},
@@ -70,4 +68,31 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::END, "end"},
         {TokenType ::BUILTIN_INPUT, "input"},
         {TokenType ::BUILTIN_PRINT, "print"},
+};
+
+std::map<ASTType, std::string> asttype_2_str_ = {
+        {ASTType::AST_BLOCK, "block"},
+        {ASTType::AST_ARGS, "args"},
+        {ASTType::AST_IF,"if"},
+        {ASTType::AST_WHILE,"while"},
+        {ASTType::AST_ASSIGN,"assign"},
+        {ASTType::AST_EXP, "exp"},
+        {ASTType::AST_FUN, "func"},
+        {ASTType::AST_CALL, "call"},
+        {ASTType::AST_RETURN, "return"},
+        {ASTType::AST_SYM, "sym"},
+
+        {ASTType::AST_INTEGER, "integer"},
+        {ASTType::AST_DECIMAL, "decimal"},
+        {ASTType::AST_AND, "&&"},
+        {ASTType::AST_NOT_EQUAL, "<="},
+        {ASTType::AST_EQUAL, "=="},
+        {ASTType::AST_LESS_EQUAL, "<="},
+        {ASTType::AST_LARGER_EQUAL, ">="},
+        {ASTType::AST_LESS, "<"},
+        {ASTType::AST_LARGE, ">"},
+        {ASTType::AST_ADD, "+"},
+        {ASTType::AST_SUB, "-"},
+        {ASTType::AST_MUL, "*"},
+        {ASTType::AST_DIV, "/"},
 };

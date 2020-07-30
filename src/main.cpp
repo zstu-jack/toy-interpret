@@ -21,7 +21,6 @@ int main(int argc, char* argvs[]) {
         std::string statement;
         for(;;){
             std::cin >> statement;
-            // TODO
         }
         // interrupt.
     }
@@ -29,9 +28,11 @@ int main(int argc, char* argvs[]) {
     ASSERT_EXIT(argc == 2, "only one file supported for now");
     std::string program = read_from_file(argvs[1]);
     tokenizer->parse(program);
-    //tokenizer->print();
     blocks = blocks->build(tokenizer->tokens_);
-    //blocks->print(0, blocks);
+#ifdef DEBUG
+    tokenizer->print();
+    blocks->print(0, blocks);
+#endif
     blocks->interpret(blocks);
 
     return 0;

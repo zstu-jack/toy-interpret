@@ -6,6 +6,7 @@
 #include <map>
 #include <cstdio>
 #include <functional>
+#include <string>
 
 #define ASSERT_EXIT(COND, X, ...)\
     if(!(COND)) \
@@ -33,6 +34,14 @@ enum class TokenType{
     SYMBOL = 0,
     INTEGER,
     DECIMAL,
+
+    // for string
+    QUOTATION,
+    DQUOTATION,
+    // builtin
+    BUILTIN_INPUT,
+    BUILTIN_PRINT,
+
     LEFT_PARENTHESIS,
     RIGHT_PARENTHESIS,
     LEFT_BRACE,
@@ -40,7 +49,7 @@ enum class TokenType{
     SEMICOLON,
     COMMA,
 
-    KEY_FOR,
+    KEY_WHILE,
     KEY_IF,
     KEY_FUNCTION,
     KEY_RETURN,
@@ -61,21 +70,47 @@ enum class TokenType{
     OP_MUL,
     OP_DIV,
 
-    QUOTATION,
-    DQUOTATION,
-
     END,
+};
 
-    // builtin
-    BUILTIN_INPUT,
-    BUILTIN_PRINT,
+enum class ASTType{
+    AST_BLOCK,
+    AST_EXP,
+
+    AST_IF,
+    AST_WHILE,
+    AST_ASSIGN,
+
+    AST_ARGS,
+    AST_FUN,
+    AST_CALL,
+    AST_RETURN,
+
+    AST_SYM,
+    AST_INTEGER,
+    AST_DECIMAL,
+    AST_VOID,
+
+    // op
+    AST_AND,
+    AST_NOT_EQUAL,
+    AST_EQUAL,
+    AST_LESS_EQUAL,
+    AST_LARGER_EQUAL,
+    AST_LESS,
+    AST_LARGE,
+    AST_ADD,
+    AST_SUB,
+    AST_MUL,
+    AST_DIV,
 };
 
 extern std::map<std::string, TokenType> keywords_token;
 extern std::string op_keywords;
-extern std::map<char, TokenType> easy_char_token;
+extern std::map<std::string, TokenType> easy_char_token;
 extern std::map<std::string, TokenType> op_char_token;
 
 extern std::map<TokenType, std::string> tokentype_2_string;
+extern std::map<ASTType, std::string> asttype_2_str_;
 
 #endif //DEFINE_H
