@@ -88,7 +88,15 @@ void Tokenizer::parse(const std::string& text){
         }
         else if(easy_char_token.count(std::string(1, cp))){
             incp(_p);
-            tokens_.push_back(new Token(easy_char_token[std::string(1, cp)], std::string(1, cp), _line));
+            if(cp == '\"'){
+                ++ _lp;
+                while(text[_p] != '\"') incp(_p);
+                std::string value = text.substr(_lp, _p-_lp);
+                tokens_.push_back(new Token(TokenType ::STRING, value, _line));
+                incp(_p);
+            }else{
+                tokens_.push_back(new Token(easy_char_token[std::string(1, cp)], std::string(1, cp), _line));
+            }
         }
         else if(cp == ' ' || cp == '\t' || cp == '\n' || cp == '\r'){
             incp(_p);

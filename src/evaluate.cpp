@@ -71,6 +71,10 @@ void AST::exp_elem(AST* ast){
             pass_args(ast);
             next(TokenType::RIGHT_PARENTHESIS);
         }
+    }else if(peek_type() == TokenType::STRING){
+        ast->ast_type_ = ASTType ::AST_STRING;
+        ast->ast_value_.str = peek_value();
+        next(TokenType::STRING);
     }else{
         ASSERT_EXIT(false, "unexpected token type (%s)\n", tokentype_2_string[peek_type()].c_str());
     }
@@ -172,7 +176,7 @@ void AST::args(AST* ast){
     }
 }
 
-// --------- stats ------------
+// ----------------------------------------------------------------------- stats -----------------------------------------------------------------------------------
 void AST::stat_if(AST *ast) {
     //  if
     //exp block
@@ -332,7 +336,7 @@ void AST::print(int deep, AST* ast){
     for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) print(deep+1, ast->sub_asts_[i]);
 }
 
-// ------------------------------ interpret  ------------------------------
+// ------------------------------------------------------------------------------------------ interpret  ------------------------------------------------------------------------------------------
 
 Symbol AST::eval_function(AST* ast){
     ASSERT_EXIT(env_.funcs_.count(ast->ast_value_.str) == 0, "function(%s) redefined", ast->ast_value_.str.c_str());
@@ -347,6 +351,20 @@ Symbol AST::eval_function(AST* ast){
     return {};
 }
 
+int AST::is_builtin(AST *ast) {
+    Symbol symbol{};
+    symbol.num = 1;
+
+    auto* env = &env_.global_;
+    if(env_.current_.size()){
+        env = &env_.current_.back();
+    }
+
+    auto fname = ast->ast_value_.str;
+
+    return fname == "input" || fname == "print";
+}
+
 Symbol AST::eval_builtin(AST* ast){
 
     Symbol symbol{};
@@ -358,13 +376,14 @@ Symbol AST::eval_builtin(AST* ast){
     }
 
     auto fname = ast->ast_value_.str;
-    if(fname == "input"){ // TODO: support more data type for input.
-        for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
-            int v; scanf("%d", &v);
-            (*env)[ast->sub_asts_[i]->ast_value_.str].num = v;
-            (*env)[ast->sub_asts_[i]->ast_value_.str].value_type_ = ASTType ::AST_INTEGER;
-        }
-        return symbol;
+    if(fname == "input"){ // TODO: support more data type and more number of args for input.
+        //for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
+        int v; scanf("%d", &v);
+        Symbol result;
+        result.num = v;
+        result.value_type_ = ASTType ::AST_INTEGER;
+        //}
+        return result;
     }
     if(fname == "print"){
         auto print_sym = [](std::string name, const Symbol& symbol){
@@ -373,6 +392,8 @@ Symbol AST::eval_builtin(AST* ast){
             }
             else if(symbol.value_type_ == ASTType::AST_DECIMAL){
                 printf("%.2f", symbol.dec);
+            }else if(symbol.value_type_ == ASTType::AST_STRING){
+                printf("%s", symbol.str.c_str());
             }else{
                 ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%d)(num=%d)(dec=%.2f)", name.c_str(), symbol.value_type_, symbol.num, symbol.dec);
             }
@@ -402,17 +423,14 @@ Symbol AST::eval_symbol(AST* ast){
 
 Symbol AST::eval_exp(AST* ast){
 
-    auto conv = [](Symbol& sym){
-        if(sym.value_type_ != ASTType::AST_DECIMAL){
-            sym.value_type_ = ASTType ::AST_DECIMAL;
-            sym.dec = sym.num;
-        }
-    };
-
-    // TODO: wrapper exp and support more operate;
+    // TODO: wrapper exp and support more operate and conversion of operands
     Symbol result;
     if(ast->ast_type_ == ASTType::AST_EXP){
         return eval_exp(ast->sub_asts_[0]);
+    }
+    else if(ast->ast_type_ == ASTType::AST_STRING){
+        result.str = ast->ast_value_.str;
+        result.value_type_ = ASTType::AST_STRING;
     }
     else if(ast->ast_type_ == ASTType::AST_INTEGER){
         result.num = ast->ast_value_.num;
@@ -428,27 +446,22 @@ Symbol AST::eval_exp(AST* ast){
     else if(ast->ast_type_ == ASTType::AST_ADD){
         Symbol left_operand = eval_exp(ast->sub_asts_[0]);
         Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-        if(left_operand.value_type_ != right_operand.value_type_){
-            conv(left_operand); conv(right_operand);
-            result.value_type_ = ASTType::AST_DECIMAL;
-            result.dec = left_operand.dec + right_operand.dec;
-        }else {
-            result.value_type_ = left_operand.value_type_;
-            result.dec = left_operand.dec + right_operand.dec;
-            result.num = left_operand.num + right_operand.num;
+
+        result.value_type_ = left_operand.value_type_;
+        switch (left_operand.value_type_){
+            case ASTType ::AST_INTEGER: result.num = left_operand.num + right_operand.num; break;
+            case ASTType ::AST_STRING:  result.str = left_operand.str + right_operand.str; break;
+            case ASTType ::AST_DECIMAL: result.dec = left_operand.dec + right_operand.dec; break;
         }
     }
     else if(ast->ast_type_ == ASTType::AST_SUB){
         Symbol left_operand = eval_exp(ast->sub_asts_[0]);
         Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-        if(left_operand.value_type_ != right_operand.value_type_){
-            conv(left_operand); conv(right_operand);
-            result.value_type_ = ASTType::AST_DECIMAL;
-            result.dec = left_operand.dec - right_operand.dec;
-        }else {
-            result.value_type_ = left_operand.value_type_;
-            result.dec = left_operand.dec - right_operand.dec;
-            result.num = left_operand.num - right_operand.num;
+        result.value_type_ = left_operand.value_type_;
+        switch (left_operand.value_type_){
+            case ASTType ::AST_INTEGER: result.num = left_operand.num - right_operand.num;      break;
+            case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do substract op on string");   break;
+            case ASTType ::AST_DECIMAL:result.dec = left_operand.dec - right_operand.dec;       break;
         }
     }
     else if(ast->ast_type_ == ASTType::AST_CALL){
@@ -457,16 +470,20 @@ Symbol AST::eval_exp(AST* ast){
     else if(ast->ast_type_ == ASTType::AST_LESS_EQUAL){
         Symbol left_operand = eval_exp(ast->sub_asts_[0]);
         Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-        if(left_operand.value_type_ != right_operand.value_type_){
-            conv(left_operand); conv(right_operand);
-            result.value_type_ = ASTType::AST_DECIMAL;
-            result.dec = left_operand.dec + right_operand.dec;
-        }
         result.value_type_ = ASTType ::AST_INTEGER;
-        if(left_operand.value_type_ == ASTType::AST_INTEGER){
-            result.num = (left_operand.num <= right_operand.num);
-        }else{
-            result.num = (left_operand.dec <= right_operand.dec);
+        switch (left_operand.value_type_) {
+            case ASTType::AST_INTEGER: {
+                result.num = left_operand.num <= right_operand.num;
+                break;
+            }
+            case ASTType::AST_STRING: {
+                result.num = left_operand.str <= right_operand.str;
+                break;
+            }
+            case ASTType::AST_DECIMAL: {
+                result.num = left_operand.dec <= right_operand.dec;
+                break;
+            }
         }
     }else{
         ASSERT_EXIT(false, "unexpected asttype(%s)", asttype_2_str_[ast->ast_type_].c_str());
@@ -508,8 +525,9 @@ Symbol AST::eval_if(AST* ast){
     return symbol;
 }
 Symbol AST::eval_call(AST* ast){
-    if(eval_builtin(ast).num){
-        return Symbol{};
+
+    if(is_builtin(ast)){
+        return eval_builtin(ast);
     }
 
     std::vector<Symbol> symbols;

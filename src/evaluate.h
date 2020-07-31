@@ -72,6 +72,7 @@ typedef struct AST{
     void stat_input(AST *ast);
     AST* build(std::vector<Token*>& tokens);
 
+    int is_builtin(AST* ast);
     Symbol eval_builtin(AST* ast);
     Symbol eval_function(AST* ast);
     Symbol eval_symbol(AST* ast);
