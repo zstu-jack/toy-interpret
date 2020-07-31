@@ -31,6 +31,8 @@ std::map<std::string, TokenType> easy_char_token = {
         {")", TokenType ::RIGHT_PARENTHESIS},
         {";", TokenType ::SEMICOLON},
         {",", TokenType ::COMMA},
+        {"'", TokenType ::QUOTATION},
+        {"\"", TokenType ::DQUOTATION},
 };
 
 // following symbol just for debug...
@@ -38,6 +40,7 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::SYMBOL, "symbol"},
         {TokenType ::INTEGER, "integer"},
         {TokenType ::DECIMAL, "decimal"},
+        {TokenType ::STRING, "string"},
         {TokenType ::LEFT_PARENTHESIS, "("},
         {TokenType ::RIGHT_PARENTHESIS, ")"},
         {TokenType ::LEFT_BRACE, "{"},
@@ -64,7 +67,7 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::OP_MUL, "*"},
         {TokenType ::OP_DIV, "/"},
         {TokenType ::QUOTATION, "'"},
-        {TokenType ::DQUOTATION, "\"\""},
+        {TokenType ::DQUOTATION, "\""},
         {TokenType ::END, "end"},
         {TokenType ::BUILTIN_INPUT, "input"},
         {TokenType ::BUILTIN_PRINT, "print"},
@@ -84,6 +87,7 @@ std::map<ASTType, std::string> asttype_2_str_ = {
 
         {ASTType::AST_INTEGER, "integer"},
         {ASTType::AST_DECIMAL, "decimal"},
+        {ASTType::AST_STRING, "string"},
         {ASTType::AST_AND, "&&"},
         {ASTType::AST_NOT_EQUAL, "<="},
         {ASTType::AST_EQUAL, "=="},

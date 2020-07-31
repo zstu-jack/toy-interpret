@@ -19,7 +19,7 @@
 
 enum class ResultID{
     SUCCESS = 0,
-    FATAL = 1,
+    FATAL,
 
 };
 
@@ -34,7 +34,7 @@ enum class TokenType{
     SYMBOL = 0,
     INTEGER,
     DECIMAL,
-
+    STRING,
     // for string
     QUOTATION,
     DQUOTATION,
@@ -89,6 +89,7 @@ enum class ASTType{
     AST_SYM,
     AST_INTEGER,
     AST_DECIMAL,
+    AST_STRING,
     AST_VOID,
 
     // op

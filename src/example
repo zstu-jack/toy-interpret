@@ -1,3 +1,4 @@
+/*
 function test(a,b){
 	y = 0;
 	z = 1;
@@ -9,18 +10,35 @@ x = 1;
 y = 1.2;
 t = x + y;
 
-print(x,y,t);
+// print(x,y,t);
+*/
+// 上述代码被注释了..
 
+//a = {"aa", "bb"};
+//a[1] = "ccc";
+//a["aa"] = 1;
+
+str1="abcd";
+str2="gg";
+print(str2+str1+str2);
+
+t = 0;
+x = 0;
+function test(){
+    t = 1000;       // cover t outsize.
+    return t;
+}
 if(t <= 3){
     print(t);
     x = x + 1;
-    x = test(3, x);
+    x = test();
 }
 print(t, x);
 
 function fib(x){
     g = 0;
     while(g<=5){
+        //print(g);
         g = g + 1;
     }
     if(x <= 2){
@@ -31,3 +49,6 @@ function fib(x){
 
 x = fib(20);
 print(x);
+
+in = input();
+print(fib(in));
