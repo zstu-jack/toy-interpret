@@ -21,8 +21,10 @@ bool Tokenizer::is_digit(char c){ return c >= '0' && c <= '9'; }
 bool Tokenizer::is_symbol(char c){ return is_symbol_start(c) || is_digit(c); }
 bool Tokenizer::is_operator(char c){ return op_keywords.find(c) != std::string::npos; }
 
-void Tokenizer::incp(size_t& p){
-    ASSERT_EXIT(++ p <= program_.size(), "exceed program size");
+void Tokenizer::incp(size_t& p, size_t offset = 1){
+    for(size_t i = 0; i < offset; i ++) {
+        ASSERT_EXIT(++p <= program_.size(), "exceed program size");
+    }
 }
 void Tokenizer::parse(const std::string& text){
     ASSERT_EXIT(text.size() > 0, "empty content");
@@ -46,10 +48,39 @@ void Tokenizer::parse(const std::string& text){
             else tokens_.push_back(new Token(TokenType ::INTEGER, key, _line));
         }
         else if(is_operator(cp)){
-            incp(_p);
-            if(text[_p] == '=' || text[_p] == '|' || text[_p] == '&') {
+            if(text[_p+1] == '=' || text[_p+1] == '|' || text[_p+1] == '&') {
+                incp(_p, 2);
+            }
+            else if(text[_p] == '/' && text[_p+1] == '/'){
+                // comment.
+                incp(_p, 2);
+                for(;;){
+                    if(text[_p] == '\n'){
+                        incp(_p);
+                        break;
+                    }
+                    if(text[_p] == '\r' && text[_p+1] == '\n'){
+                        incp(_p, 2);
+                        break;
+                    }
+                    incp(_p);
+                }
+                continue;
+            }else if(text[_p] == '/' && text[_p+1] == '*'){
+                incp(_p, 2);
+                for(;;) {
+                    while (text[_p] != '*') {
+                        incp(_p);
+                    }
+                    incp(_p);
+                    if (text[_p] == '/') {
+                        incp(_p);
+                        break;
+                    }
+                }
+                continue;
+            }else{
                 incp(_p);
-                std::string key = text.substr(_lp, _p - _lp);
             }
             std::string key = text.substr(_lp, _p-_lp);
             ASSERT_EXIT(op_char_token.count(key), "operator = (%s) not found", key.c_str());

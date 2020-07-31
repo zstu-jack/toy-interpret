@@ -1,3 +1,4 @@
+/*
 function test(a,b){
 	y = 0;
 	z = 1;
@@ -9,12 +10,20 @@ x = 1;
 y = 1.2;
 t = x + y;
 
-print(x,y,t);
+// print(x,y,t);
+*/
+// 上述代码被注释了..
 
+t = 0;
+x = 0;
+function test(){
+    t = 1000;       // cover t outsize.
+    return t;
+}
 if(t <= 3){
     print(t);
     x = x + 1;
-    x = test(3, x);
+    x = test();
 }
 print(t, x);
 

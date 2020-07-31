@@ -41,7 +41,7 @@ std::string AST::last_value(){
     return tokens_[consumed_index_-1]->values_;
 }
 Token* AST::next(TokenType token_type){
-    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"consumed_index=%d, expected 【%s】 but got 【%s】 in line %d",
+    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"consumed_index=%d, expected 【%s】 but got 【%s】 in line %d\n",
                 (int32_t)consumed_index_, tokentype_2_string[token_type].c_str(),
                 tokentype_2_string[tokens_[consumed_index_]->token_type_].c_str(),
                 tokens_[consumed_index_]->lines_);

@@ -16,7 +16,7 @@ public:
 };
 
 struct Tokenizer{
-    void incp(size_t& p);
+    void incp(size_t& p, size_t offset);
     void parse(const std::string& text);
     void print();
 
