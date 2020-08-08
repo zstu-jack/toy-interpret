@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "define.h"
 #include "parser.h"
+#include <functional>
 
 std::vector<Token *> tokens_;
 size_t consumed_index_;
@@ -48,6 +49,7 @@ Token* AST::next(TokenType token_type){
     return tokens_[consumed_index_ ++];
 }
 
+// ----------------------------------------------------------------------- exp -----------------------------------------------------------------------------------
 AST* AST::exp_elem(){
     AST* ast;
     if(peek_type() == TokenType::LEFT_PARENTHESIS){
@@ -95,9 +97,12 @@ AST* AST::exp(int pre){
         if(tokenType == TokenType::RIGHT_PARENTHESIS || tokenType == TokenType::RIGHT_BRACE || tokenType == TokenType::SEMICOLON || tokenType == TokenType::COMMA){
             break;
         }
-        next(tokenType);
         int nxt_precedence = op_precedences[tokenType];
-        AST* right = exp(nxt_precedence);
+        if(nxt_precedence < pre){
+            break;
+        }
+        next(tokenType);
+        AST* right = exp(nxt_precedence+1);
         auto ast_type = tokentype_2_asttype_[tokenType];
         AST* rt = new AST(ast_type);
         rt->sub_asts_.push_back(left);
@@ -287,6 +292,253 @@ void AST::print(int deep, AST* ast){
     for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) print(deep+1, ast->sub_asts_[i]);
 }
 
+// ----------------------------------------------------------------------- eval expression -----------------------------------------------------------------------------------
+Symbol eval_or(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num || right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_and(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num && right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_bit_or(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num | right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_bit_xor(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num ^ right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_bit_and(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num & right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_not_equal(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num != right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: result.num = fabs(left_operand.dec - right_operand.dec) > 1e-5; break;
+    }
+    return result;
+}
+Symbol eval_equal(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num == right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: result.num = fabs(left_operand.dec - right_operand.dec) < 1e-5; break;
+    }
+    return result;
+}
+Symbol eval_larger_equal(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num >= right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: result.num = left_operand.dec >= right_operand.dec; break;
+    }
+    return result;
+}
+Symbol eval_larger(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num > right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: result.num = left_operand.dec > right_operand.dec; break;
+    }
+    return result;
+}
+Symbol eval_less_equal(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_) {
+        case ASTType::AST_INTEGER: {
+            result.num = left_operand.num <= right_operand.num;
+            break;
+        }
+        case ASTType::AST_STRING: {
+            result.num = left_operand.str <= right_operand.str;
+            break;
+        }
+        case ASTType::AST_DECIMAL: {
+            result.num = left_operand.dec <= right_operand.dec;
+            break;
+        }
+    }
+    return result;
+}
+Symbol eval_less(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = ASTType ::AST_INTEGER;
+    switch (left_operand.value_type_) {
+        case ASTType::AST_INTEGER: {
+            result.num = left_operand.num < right_operand.num;
+            break;
+        }
+        case ASTType::AST_STRING: {
+            result.num = left_operand.str < right_operand.str;
+            break;
+        }
+        case ASTType::AST_DECIMAL: {
+            result.num = left_operand.dec < right_operand.dec;
+            break;
+        }
+    }
+    return result;
+}
+Symbol eval_shl(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num << right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_shr(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num >> right_operand.num; break;
+        case ASTType ::AST_STRING:  break;
+        case ASTType ::AST_DECIMAL: break;
+    }
+    return result;
+}
+Symbol eval_add(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num + right_operand.num; break;
+        case ASTType ::AST_STRING:  result.str = left_operand.str + right_operand.str; break;
+        case ASTType ::AST_DECIMAL: result.dec = left_operand.dec + right_operand.dec; break;
+    }
+    return result;
+}
+Symbol eval_sub(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num - right_operand.num;      break;
+        case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do substract op on string");   break;
+        case ASTType ::AST_DECIMAL:result.dec = left_operand.dec - right_operand.dec;       break;
+    }
+    return result;
+}
+Symbol eval_mul(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num * right_operand.num;      break;
+        case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do mul op on string");   break;
+        case ASTType ::AST_DECIMAL:result.dec = left_operand.dec * right_operand.dec;       break;
+    }
+    return result;
+}
+Symbol eval_div(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num / right_operand.num;      break;
+        case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do div op on string");   break;
+        case ASTType ::AST_DECIMAL:result.dec = left_operand.dec / right_operand.dec;       break;
+    }
+    return result;
+}
+Symbol eval_mod(AST* ast){
+    Symbol result;
+    Symbol left_operand = ast->eval_exp(ast->sub_asts_[0]);
+    Symbol right_operand = ast->eval_exp(ast->sub_asts_[1]);
+    result.value_type_ = left_operand.value_type_;
+    switch (left_operand.value_type_){
+        case ASTType ::AST_INTEGER: result.num = left_operand.num % right_operand.num;      break;
+        case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do mod op on string");   break;
+        case ASTType ::AST_DECIMAL:ASSERT_EXIT(false, "can't do mod op on decimal");   break;
+    }
+    return result;
+}
 // ------------------------------------------------------------------------------------------ interpret  ------------------------------------------------------------------------------------------
 
 Symbol AST::eval_function(AST* ast){
@@ -337,7 +589,7 @@ Symbol AST::eval_builtin(AST* ast){
         return result;
     }
     if(fname == "print"){
-        auto print_sym = [](std::string name, const Symbol& symbol){
+        auto print_sym = [=](std::string name, const Symbol& symbol){
             if(symbol.value_type_ == ASTType::AST_INTEGER){
                 printf("%d", symbol.num);
             }
@@ -346,6 +598,7 @@ Symbol AST::eval_builtin(AST* ast){
             }else if(symbol.value_type_ == ASTType::AST_STRING){
                 printf("%s", symbol.str.c_str());
             }else{
+                print(ast);
                 ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%d)(num=%d)(dec=%.2f)", name.c_str(), symbol.value_type_, symbol.num, symbol.dec);
             }
         };
@@ -394,48 +647,11 @@ Symbol AST::eval_exp(AST* ast){
     else if(ast->ast_type_ == ASTType::AST_SYM){
         result = eval_symbol(ast);
     }
-    else if(ast->ast_type_ == ASTType::AST_ADD){
-        Symbol left_operand = eval_exp(ast->sub_asts_[0]);
-        Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-
-        result.value_type_ = left_operand.value_type_;
-        switch (left_operand.value_type_){
-            case ASTType ::AST_INTEGER: result.num = left_operand.num + right_operand.num; break;
-            case ASTType ::AST_STRING:  result.str = left_operand.str + right_operand.str; break;
-            case ASTType ::AST_DECIMAL: result.dec = left_operand.dec + right_operand.dec; break;
-        }
-    }
-    else if(ast->ast_type_ == ASTType::AST_SUB){
-        Symbol left_operand = eval_exp(ast->sub_asts_[0]);
-        Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-        result.value_type_ = left_operand.value_type_;
-        switch (left_operand.value_type_){
-            case ASTType ::AST_INTEGER: result.num = left_operand.num - right_operand.num;      break;
-            case ASTType ::AST_STRING: ASSERT_EXIT(false, "can't do substract op on string");   break;
-            case ASTType ::AST_DECIMAL:result.dec = left_operand.dec - right_operand.dec;       break;
-        }
-    }
     else if(ast->ast_type_ == ASTType::AST_CALL){
         result = eval_call(ast);
     }
-    else if(ast->ast_type_ == ASTType::AST_LESS_EQUAL){
-        Symbol left_operand = eval_exp(ast->sub_asts_[0]);
-        Symbol right_operand = eval_exp(ast->sub_asts_[1]);
-        result.value_type_ = ASTType ::AST_INTEGER;
-        switch (left_operand.value_type_) {
-            case ASTType::AST_INTEGER: {
-                result.num = left_operand.num <= right_operand.num;
-                break;
-            }
-            case ASTType::AST_STRING: {
-                result.num = left_operand.str <= right_operand.str;
-                break;
-            }
-            case ASTType::AST_DECIMAL: {
-                result.num = left_operand.dec <= right_operand.dec;
-                break;
-            }
-        }
+    else if(arith_callback_.count(ast->ast_type_)){
+        result = arith_callback_[ast->ast_type_](ast);
     }else{
         print(ast);
         ASSERT_EXIT(false, "unexpected asttype(%s)", asttype_2_str_[ast->ast_type_].c_str());
@@ -528,3 +744,25 @@ Symbol AST::interpret(AST* block) {
     // FIXME: if(){} dele brace in script.
     // TODO: enter block like(if/while) cover the local variable;
 }
+
+
+std::map<ASTType , std::function<Symbol(AST*)>> arith_callback_ = {
+    {ASTType ::AST_OR, std::bind(eval_or, std::placeholders::_1)},
+    {ASTType ::AST_AND,std::bind(eval_and, std::placeholders::_1)},
+    {ASTType ::AST_BIT_OR,std::bind(eval_bit_or, std::placeholders::_1)},
+    {ASTType ::AST_BIT_XOR,std::bind(eval_bit_xor, std::placeholders::_1)},
+    {ASTType ::AST_BIT_AND,std::bind(eval_and, std::placeholders::_1)},
+    {ASTType ::AST_NOT_EQUAL,std::bind(eval_not_equal, std::placeholders::_1)},
+    {ASTType ::AST_EQUAL,std::bind(eval_equal, std::placeholders::_1)},
+    {ASTType ::AST_LARGER_EQUAL,std::bind(eval_larger_equal, std::placeholders::_1)},
+    {ASTType ::AST_LARGER,std::bind(eval_larger, std::placeholders::_1)},
+    {ASTType ::AST_LESS_EQUAL,std::bind(eval_less_equal, std::placeholders::_1)},
+    {ASTType ::AST_LESS,std::bind(eval_less, std::placeholders::_1)},
+    {ASTType ::AST_SHL,std::bind(eval_shl, std::placeholders::_1)},
+    {ASTType ::AST_SHR,std::bind(eval_shr, std::placeholders::_1)},
+    {ASTType ::AST_ADD,std::bind(eval_add, std::placeholders::_1)},
+    {ASTType ::AST_SUB,std::bind(eval_sub, std::placeholders::_1)},
+    {ASTType ::AST_MUL,std::bind(eval_mul, std::placeholders::_1)},
+    {ASTType ::AST_DIV,std::bind(eval_div, std::placeholders::_1)},
+    {ASTType ::AST_MOD,std::bind(eval_mod, std::placeholders::_1)}
+};

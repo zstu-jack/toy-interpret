@@ -36,6 +36,24 @@ struct Env{
     std::vector<Symbols> current_;
 };
 
+Symbol eval_or(AST* ast);
+Symbol eval_and(AST* ast);
+Symbol eval_bit_or(AST* ast);
+Symbol eval_bit_xor(AST* ast);
+Symbol eval_bit_and(AST* ast);
+Symbol eval_not_equal(AST* ast);
+Symbol eval_equal(AST* ast);
+Symbol eval_larger_equal(AST* ast);
+Symbol eval_larger(AST* ast);
+Symbol eval_less_equal(AST* ast);
+Symbol eval_less(AST* ast);
+Symbol eval_shl(AST* ast);
+Symbol eval_shr(AST* ast);
+Symbol eval_add(AST* ast);
+Symbol eval_sub(AST* ast);
+Symbol eval_mul(AST* ast);
+Symbol eval_div(AST* ast);
+Symbol eval_mod(AST* ast);
 
 typedef struct AST{
     AST();
@@ -86,5 +104,6 @@ typedef struct AST{
 extern std::vector<Token *> tokens_;
 extern size_t consumed_index_;
 extern Env env_;
+extern std::map<ASTType , std::function<Symbol(AST*)>> arith_callback_;
 
 #endif //EVALUATE_H
