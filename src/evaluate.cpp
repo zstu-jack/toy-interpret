@@ -120,7 +120,7 @@ void AST::exp(AST* ast){
 
     if (peek_type() == TokenType::OP_LARGER) {
         next(TokenType::OP_LARGER);
-        ast->ast_type_ = ASTType ::AST_LARGE;
+        ast->ast_type_ = ASTType ::AST_LARGER;
     }
     else if (peek_type() == TokenType::OP_LESS) {
         next(TokenType::OP_LESS);
@@ -128,7 +128,7 @@ void AST::exp(AST* ast){
     }
     else if (peek_type() == TokenType::OP_LARGER_EQUAL) {
         next(TokenType::OP_LARGER_EQUAL);
-        ast->ast_type_ = ASTType ::AST_LARGE;
+        ast->ast_type_ = ASTType ::AST_LARGER;
     }
     else if (peek_type() == TokenType::OP_LESS_EQUAL) {
         next(TokenType::OP_LESS_EQUAL);
