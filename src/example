@@ -18,6 +18,9 @@ t = x + y;
 //a[1] = "ccc";
 //a["aa"] = 1;
 
+print(1+2*3+7>>1<<2>=3-2);
+print(1+2*3+7-1<<2>=3-2);
+
 str1="abcd";
 str2="gg";
 print(str2+str1+str2);
@@ -47,8 +50,11 @@ function fib(x){
     return fib(x-1) + fib(x-2) + g;
 }
 
+start=time();
 x = fib(20);
 print(x);
+end=time();
+print(end -start);
 
 in = input();
 print(fib(in));

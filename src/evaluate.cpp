@@ -3,6 +3,14 @@
 #include "define.h"
 #include "parser.h"
 #include <functional>
+#include <cmath>
+
+#if defined(__linux__)
+#include <sys/time.h>
+#include <utime.h>
+#else
+
+#endif
 
 std::vector<Token *> tokens_;
 size_t consumed_index_;
@@ -233,7 +241,7 @@ void AST::stat_input(AST *ast) {
 
 void AST::stat(AST* ast){
     auto* current = tokens_[consumed_index_ ++];
-    static std::map<TokenType , std::function<void(AST*)>> cb = {
+    static std::map<TokenType , std::function<void(AST*)> > cb = {
             {TokenType::KEY_IF, std::bind(&AST::stat_if, ast, std::placeholders::_1)},
             {TokenType::KEY_WHILE, std::bind(&AST::stat_while, ast, std::placeholders::_1)},
             {TokenType::KEY_FUNCTION, std::bind(&AST::stat_function, ast, std::placeholders::_1)},
@@ -565,7 +573,7 @@ int AST::is_builtin(AST *ast) {
 
     auto fname = ast->ast_value_.str;
 
-    return fname == "input" || fname == "print";
+    return fname == "input" || fname == "print" || fname == "time";
 }
 
 Symbol AST::eval_builtin(AST* ast){
@@ -588,10 +596,24 @@ Symbol AST::eval_builtin(AST* ast){
         //}
         return result;
     }
+
+    if(fname == "time"){
+        Symbol result;
+        result.value_type_ = ASTType ::AST_INTEGER;
+#if defined(__linux__)
+        struct timeval t_start;
+        gettimeofday(&t_start, NULL);
+        result.num = (t_start.tv_sec*1000000 + t_start.tv_usec);
+#else
+        result.num = 0; // FIXME: not supported windows for now.
+#endif
+        return result;
+    }
+
     if(fname == "print"){
         auto print_sym = [=](std::string name, const Symbol& symbol){
             if(symbol.value_type_ == ASTType::AST_INTEGER){
-                printf("%d", symbol.num);
+                printf("%lld", symbol.num);
             }
             else if(symbol.value_type_ == ASTType::AST_DECIMAL){
                 printf("%.2f", symbol.dec);
@@ -746,7 +768,7 @@ Symbol AST::interpret(AST* block) {
 }
 
 
-std::map<ASTType , std::function<Symbol(AST*)>> arith_callback_ = {
+std::map<ASTType , std::function<Symbol(AST*)>  > arith_callback_ = {
     {ASTType ::AST_OR, std::bind(eval_or, std::placeholders::_1)},
     {ASTType ::AST_AND,std::bind(eval_and, std::placeholders::_1)},
     {ASTType ::AST_BIT_OR,std::bind(eval_bit_or, std::placeholders::_1)},

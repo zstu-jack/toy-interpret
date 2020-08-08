@@ -20,7 +20,7 @@ typedef struct Symbol{
     Symbol();
 
     std::string str;
-    int num;
+    long long num;
     double dec;
     FuncProto func;
     ASTType value_type_;
