@@ -123,9 +123,10 @@ extern std::map<std::string, TokenType> keywords_token;
 
 extern std::string op_keywords;
 extern std::map<std::string, TokenType> op_char_token;
-extern std::map<ASTType, int> op_precedences;
+extern std::map<TokenType, int> op_precedences;
 
 extern std::map<TokenType, std::string> tokentype_2_string;
 extern std::map<ASTType, std::string> asttype_2_str_;
+extern std::map<TokenType, ASTType > tokentype_2_asttype_;
 
 #endif //DEFINE_H

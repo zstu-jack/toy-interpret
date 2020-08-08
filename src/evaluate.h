@@ -56,10 +56,8 @@ typedef struct AST{
     void args(AST* ast);
     void pass_args(AST* ast);
 
-    void exp_elem(AST* ast);
-    void exp_term(AST* ast);
-    void exp_exp(AST* ast);
-    void exp(AST* ast);
+    AST* exp_elem();
+    AST* exp(int pre = -1);
 
     void stat(AST* ast);    // stats -> stat | stat {stats}
     void stat_if(AST *ast);

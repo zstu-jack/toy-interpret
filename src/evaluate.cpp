@@ -48,21 +48,22 @@ Token* AST::next(TokenType token_type){
     return tokens_[consumed_index_ ++];
 }
 
-void AST::exp_elem(AST* ast){
+AST* AST::exp_elem(){
+    AST* ast;
     if(peek_type() == TokenType::LEFT_PARENTHESIS){
         next(TokenType::LEFT_PARENTHESIS);
-        exp(ast);
+        ast = exp(-1);
         next(TokenType::RIGHT_PARENTHESIS);
     } else if(peek_type() == TokenType::INTEGER){
-        ast->ast_type_ = ASTType ::AST_INTEGER;
+        ast = new AST(ASTType ::AST_INTEGER);
         ast->ast_value_.num = std::stoi(peek_value());
         next(TokenType::INTEGER);
     } else if(peek_type() == TokenType::DECIMAL){
-        ast->ast_type_ = ASTType ::AST_DECIMAL;
+        ast = new AST(ASTType ::AST_DECIMAL);
         ast->ast_value_.dec = std::stod(peek_value());
         next(TokenType::DECIMAL);
     } else if(peek_type() == TokenType::SYMBOL){
-        ast->ast_type_ = ASTType ::AST_SYM;
+        ast = new AST(ASTType ::AST_SYM);
         ast->ast_value_.str = peek_value();
         next(TokenType::SYMBOL);
         if(peek_type() == TokenType::LEFT_PARENTHESIS){
@@ -72,90 +73,45 @@ void AST::exp_elem(AST* ast){
             next(TokenType::RIGHT_PARENTHESIS);
         }
     }else if(peek_type() == TokenType::STRING){
-        ast->ast_type_ = ASTType ::AST_STRING;
+        ast = new AST(ASTType ::AST_STRING);
         ast->ast_value_.str = peek_value();
         next(TokenType::STRING);
     }else{
-        ASSERT_EXIT(false, "unexpected token type (%s)\n", tokentype_2_string[peek_type()].c_str());
+        ASSERT_EXIT(false, "unexpected token type (%s) consume_index = %u\n", tokentype_2_string[peek_type()].c_str(), consumed_index_);
     }
+    return ast;
 }
 
-void AST::exp_term(AST* ast){
-    ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));
-    exp_elem(ast->sub_asts_.back());
-    if (peek_type() == TokenType::OP_MUL || peek_type() == TokenType::OP_DIV){
-        if(peek_type() == TokenType::OP_MUL){
-            ast->ast_type_ = ASTType ::AST_MUL;
-        }else{
-            ast->ast_type_ = ASTType ::AST_DIV;
+AST* AST::exp(int pre){
+
+    // TODO: unary operator
+    AST* left = exp_elem();
+    if(peek_type() == TokenType::SEMICOLON || peek_type() == TokenType::RIGHT_BRACE || peek_type() == TokenType::COMMA){
+        // printf("find[;] at consumed_index = %u\n", consumed_index_);
+        return left;
+    }
+    for(;;){
+        TokenType tokenType = peek_type();
+        if(tokenType == TokenType::RIGHT_PARENTHESIS || tokenType == TokenType::RIGHT_BRACE || tokenType == TokenType::SEMICOLON || tokenType == TokenType::COMMA){
+            break;
         }
-        next(peek_type());
-        ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));
-        exp_term(ast->sub_asts_.back());
+        next(tokenType);
+        int nxt_precedence = op_precedences[tokenType];
+        AST* right = exp(nxt_precedence);
+        auto ast_type = tokentype_2_asttype_[tokenType];
+        AST* rt = new AST(ast_type);
+        rt->sub_asts_.push_back(left);
+        rt->sub_asts_.push_back(right);
+        left = rt;
     }
-}
-
-void AST::exp_exp(AST* ast){
-    ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));
-    exp_term(ast->sub_asts_.back());
-    if (peek_type() == TokenType::OP_ADD || peek_type() == TokenType::OP_SUB){
-        if(peek_type() == TokenType::OP_ADD){
-            ast->ast_type_ = ASTType ::AST_ADD;
-        }else{
-            ast->ast_type_ = ASTType ::AST_SUB;
-        }
-        next(peek_type());
-        ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));
-        exp_exp(ast->sub_asts_.back());
-    }
-}
-
-void AST::exp(AST* ast){
-    // TODO: Use Top Down Operator Precedence And Support More Operator!
-    if(peek_type() == TokenType::LEFT_PARENTHESIS){
-
-    }
-    ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));    // only one node in exp.
-    exp_exp(ast->sub_asts_.back());
-
-    if (peek_type() == TokenType::OP_LARGER) {
-        next(TokenType::OP_LARGER);
-        ast->ast_type_ = ASTType ::AST_LARGER;
-    }
-    else if (peek_type() == TokenType::OP_LESS) {
-        next(TokenType::OP_LESS);
-        ast->ast_type_ = ASTType ::AST_LESS;
-    }
-    else if (peek_type() == TokenType::OP_LARGER_EQUAL) {
-        next(TokenType::OP_LARGER_EQUAL);
-        ast->ast_type_ = ASTType ::AST_LARGER;
-    }
-    else if (peek_type() == TokenType::OP_LESS_EQUAL) {
-        next(TokenType::OP_LESS_EQUAL);
-        ast->ast_type_ = ASTType ::AST_LESS_EQUAL;
-    }
-    else if (peek_type() == TokenType::OP_EQUAL) {
-        next(TokenType::OP_EQUAL);
-        ast->ast_type_ = ASTType ::AST_EQUAL;
-    }else{
-        return ;
-    }
-    ast->sub_asts_.push_back(new AST(ASTType::AST_EXP));
-    exp_exp(ast->sub_asts_.back());
+    return left;
 }
 
 void AST::pass_args(AST* ast){
     for(;;){
-        if(peek_type() == TokenType::RIGHT_PARENTHESIS){
-            break;
-        }
-
-        ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-        ast->exp(ast->sub_asts_.back());
-
-        if(peek_type() == TokenType::RIGHT_PARENTHESIS){
-            break;
-        }
+        if(peek_type() == TokenType::RIGHT_PARENTHESIS) break;
+        ast->sub_asts_.push_back(ast->exp());
+        if(peek_type() == TokenType::RIGHT_PARENTHESIS) break;
         next(TokenType::COMMA);
     }
 }
@@ -182,8 +138,7 @@ void AST::stat_if(AST *ast) {
     //exp block
     ast->ast_type_ = ASTType ::AST_IF;
     next(TokenType::LEFT_PARENTHESIS);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-    ast->exp(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(ast->exp());
     next(TokenType::RIGHT_PARENTHESIS);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
@@ -198,8 +153,7 @@ void AST::stat_while(AST *ast) {
     // expressions: should contains operand and operator(missing)
     ast->ast_type_ = ASTType ::AST_WHILE;
     next(TokenType::LEFT_PARENTHESIS);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-    ast->exp(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(ast->exp(-1));
 
     next(TokenType::RIGHT_PARENTHESIS);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
@@ -233,8 +187,7 @@ void AST::stat_exp(AST *ast) {
         ast->sub_asts_.back()->ast_value_.str = last_value();
         next(TokenType::OP_ASSIGN);
         ast->ast_type_ = ASTType ::AST_ASSIGN;
-        ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-        ast->exp(ast->sub_asts_.back());
+        ast->sub_asts_.push_back(ast->exp(-1));
     }
     next(TokenType::SEMICOLON);
 }
@@ -243,8 +196,7 @@ void AST::stat_return(AST *ast) {
     // exp
     ast->ast_type_ = ASTType ::AST_RETURN;
     if(peek_type() != TokenType::SEMICOLON) {
-        ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-        ast->exp(ast->sub_asts_.back());
+        ast->sub_asts_.push_back(ast->exp(-1));
     }
     next(TokenType::SEMICOLON);
 }
@@ -260,8 +212,7 @@ void AST::stat_brace(AST *ast) {
 void AST::stat_print(AST *ast) {
     next(TokenType::LEFT_PARENTHESIS);
     ast->ast_type_ = ASTType ::AST_SYM;
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_EXP));
-    ast->exp(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(ast->exp(-1));
     next(TokenType::RIGHT_PARENTHESIS);
     next(TokenType::SEMICOLON);
 }
@@ -486,6 +437,7 @@ Symbol AST::eval_exp(AST* ast){
             }
         }
     }else{
+        print(ast);
         ASSERT_EXIT(false, "unexpected asttype(%s)", asttype_2_str_[ast->ast_type_].c_str());
     }
     return result;

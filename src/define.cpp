@@ -47,27 +47,47 @@ std::map<std::string, TokenType> easy_char_token = {
         {"\"", TokenType ::DQUOTATION},
 };
 
-std::map<ASTType ,int> op_precedences = {
-        {ASTType::AST_OR,1},
-        {ASTType::AST_AND,2},
-        {ASTType::AST_BIT_OR,3},
-        {ASTType::AST_BIT_XOR,4},
-        {ASTType::AST_BIT_AND,5},
-        {ASTType::AST_NOT_EQUAL,6},
-        {ASTType::AST_EQUAL,6},
-        {ASTType::AST_LARGER_EQUAL,7},
-        {ASTType::AST_LARGER,7},
-        {ASTType::AST_LESS_EQUAL,7},
-        {ASTType::AST_LESS,7},
-        {ASTType::AST_SHL,8},
-        {ASTType::AST_SHR,8},
-        {ASTType::AST_ADD,9},
-        {ASTType::AST_SUB,9},
-        {ASTType::AST_MUL,10},
-        {ASTType::AST_DIV,10},
-        {ASTType::AST_MOD,10},
+std::map<TokenType ,int> op_precedences = {
+        {TokenType::OP_OR,1},
+        {TokenType::OP_AND,2},
+        {TokenType::OP_BIT_OR,3},
+        {TokenType::OP_BIT_XOR,4},
+        {TokenType::OP_BIT_AND,5},
+        {TokenType::OP_NOT_EQUAL,6},
+        {TokenType::OP_EQUAL,6},
+        {TokenType::OP_LARGER_EQUAL,7},
+        {TokenType::OP_LARGER,7},
+        {TokenType::OP_LESS_EQUAL,7},
+        {TokenType::OP_LESS,7},
+        {TokenType::OP_SHL,8},
+        {TokenType::OP_SHR,8},
+        {TokenType::OP_ADD,9},
+        {TokenType::OP_SUB,9},
+        {TokenType::OP_MUL,10},
+        {TokenType::OP_DIV,10},
+        {TokenType::OP_MOD,10},
 };
 
+std::map<TokenType , ASTType> tokentype_2_asttype_ = {
+{TokenType ::OP_OR, ASTType ::AST_OR},
+{TokenType ::OP_AND, ASTType ::AST_AND},
+{TokenType ::OP_BIT_OR, ASTType ::AST_BIT_OR},
+{TokenType ::OP_BIT_XOR, ASTType ::AST_BIT_XOR},
+{TokenType ::OP_BIT_AND, ASTType ::AST_BIT_AND},
+{TokenType ::OP_NOT_EQUAL, ASTType ::AST_NOT_EQUAL},
+{TokenType ::OP_EQUAL, ASTType ::AST_EQUAL},
+{TokenType ::OP_LARGER_EQUAL, ASTType ::AST_LARGER_EQUAL},
+{TokenType ::OP_LARGER, ASTType ::AST_LARGER},
+{TokenType ::OP_LESS_EQUAL, ASTType ::AST_LESS_EQUAL},
+{TokenType ::OP_LESS, ASTType ::AST_LESS},
+{TokenType ::OP_SHL, ASTType ::AST_SHL},
+{TokenType ::OP_SHR, ASTType ::AST_SHR},
+{TokenType ::OP_ADD, ASTType ::AST_ADD},
+{TokenType ::OP_SUB, ASTType ::AST_SUB},
+{TokenType ::OP_MUL, ASTType ::AST_MUL},
+{TokenType ::OP_DIV, ASTType ::AST_DIV},
+{TokenType ::OP_MOD, ASTType ::AST_MOD}
+};
 
 
 
