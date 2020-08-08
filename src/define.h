@@ -55,20 +55,25 @@ enum class TokenType{
     KEY_RETURN,
 
     OP_ASSIGN,
+
+    OP_OR,
+    OP_AND,
+    OP_BIT_OR,
+    OP_BIT_XOR,
+    OP_BIT_AND,
     OP_NOT_EQUAL,
     OP_EQUAL,
-    OP_LESS_EQUAL,
     OP_LARGER_EQUAL,
-    OP_LESS,
     OP_LARGER,
-    OP_BIT_AND,
-    OP_BIT_OR,
-    OP_AND,
-    OP_OR,
+    OP_LESS_EQUAL,
+    OP_LESS,
+    OP_SHL,
+    OP_SHR,
     OP_ADD,
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_MOD,
 
     END,
 };
@@ -92,26 +97,36 @@ enum class ASTType{
     AST_STRING,
     AST_VOID,
 
-    // op
+    // op, and the order represent precedences also.
+    AST_OR,
     AST_AND,
+    AST_BIT_OR,
+    AST_BIT_XOR,
+    AST_BIT_AND,
     AST_NOT_EQUAL,
     AST_EQUAL,
-    AST_LESS_EQUAL,
     AST_LARGER_EQUAL,
+    AST_LARGER,
+    AST_LESS_EQUAL,
     AST_LESS,
-    AST_LARGE,
+    AST_SHL,
+    AST_SHR,
     AST_ADD,
     AST_SUB,
     AST_MUL,
     AST_DIV,
+    AST_MOD,
 };
 
-extern std::map<std::string, TokenType> keywords_token;
-extern std::string op_keywords;
 extern std::map<std::string, TokenType> easy_char_token;
+extern std::map<std::string, TokenType> keywords_token;
+
+extern std::string op_keywords;
 extern std::map<std::string, TokenType> op_char_token;
+extern std::map<TokenType, int> op_precedences;
 
 extern std::map<TokenType, std::string> tokentype_2_string;
 extern std::map<ASTType, std::string> asttype_2_str_;
+extern std::map<TokenType, ASTType > tokentype_2_asttype_;
 
 #endif //DEFINE_H

@@ -33,12 +33,15 @@ void Tokenizer::parse(const std::string& text){
         if(_p == text.size()) break;
         const char& cp = text[_p];
         _lp = _p;
+
+        // symbol or keyword
         if(is_symbol_start(cp)){
             while(_p < text.size() && is_symbol(text[_p])) incp(_p);
             std::string key = text.substr(_lp, _p-_lp);
             if(keywords_token.count(key)) tokens_.push_back(new Token(keywords_token[key], key, _line));
             else tokens_.push_back(new Token(TokenType ::SYMBOL, key, _line));
         }
+        // decimal or integer
         else if(is_digit(cp)){
             while(_p < text.size() && is_digit(text[_p])) incp(_p);
             if(text[_p] == '.') incp(_p);
@@ -47,10 +50,39 @@ void Tokenizer::parse(const std::string& text){
             if(key.find('.') != std::string::npos) tokens_.push_back(new Token(TokenType ::DECIMAL, key, _line));
             else tokens_.push_back(new Token(TokenType ::INTEGER, key, _line));
         }
+        // operator: char start with `| & ! = > <` may have next char that represent op together.
         else if(is_operator(cp)){
-            if(text[_p+1] == '=' || text[_p+1] == '|' || text[_p+1] == '&') {
-                incp(_p, 2);
+//            | -> ||
+//            & -> &&
+//            ! -> !=
+//            = -> ==
+//            > -> >= >>
+//            < -> <= <<
+
+            // two-char operator
+            static std::string start_str = "|&!=><";
+            if(start_str.find(text[_p]) != std::string::npos) {
+                incp(_p);
+                switch (text[_p]){
+                    case '|':
+                        if(text[_p] == '|') incp(_p);
+                        break;
+                    case '&':
+                        if(text[_p] == '&') incp(_p);
+                        break;
+                    case '!':
+                    case '=':
+                        if(text[_p] == '=') incp(_p);
+                        break;
+                    case '>':
+                        if(text[_p] == '>' || text[_p] == '=') incp(_p);
+                        break;
+                    case '<':
+                        if(text[_p] == '<' || text[_p] == '=') incp(_p);
+                        break;
+                }
             }
+            // line comment.
             else if(text[_p] == '/' && text[_p+1] == '/'){
                 // comment.
                 incp(_p, 2);
@@ -66,6 +98,7 @@ void Tokenizer::parse(const std::string& text){
                     incp(_p);
                 }
                 continue;
+            // block comment.
             }else if(text[_p] == '/' && text[_p+1] == '*'){
                 incp(_p, 2);
                 for(;;) {
@@ -79,6 +112,7 @@ void Tokenizer::parse(const std::string& text){
                     }
                 }
                 continue;
+            // single char operator
             }else{
                 incp(_p);
             }
@@ -86,6 +120,7 @@ void Tokenizer::parse(const std::string& text){
             ASSERT_EXIT(op_char_token.count(key), "operator = (%s) not found", key.c_str());
             tokens_.push_back(new Token(op_char_token[key], key, _line));
         }
+        // string or `{ ( ; ,`
         else if(easy_char_token.count(std::string(1, cp))){
             incp(_p);
             if(cp == '\"'){
@@ -98,6 +133,7 @@ void Tokenizer::parse(const std::string& text){
                 tokens_.push_back(new Token(easy_char_token[std::string(1, cp)], std::string(1, cp), _line));
             }
         }
+        // line feed
         else if(cp == ' ' || cp == '\t' || cp == '\n' || cp == '\r'){
             incp(_p);
             if(cp == '\r'){

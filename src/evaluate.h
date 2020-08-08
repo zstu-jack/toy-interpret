@@ -20,7 +20,7 @@ typedef struct Symbol{
     Symbol();
 
     std::string str;
-    int num;
+    long long num;
     double dec;
     FuncProto func;
     ASTType value_type_;
@@ -36,6 +36,24 @@ struct Env{
     std::vector<Symbols> current_;
 };
 
+Symbol eval_or(AST* ast);
+Symbol eval_and(AST* ast);
+Symbol eval_bit_or(AST* ast);
+Symbol eval_bit_xor(AST* ast);
+Symbol eval_bit_and(AST* ast);
+Symbol eval_not_equal(AST* ast);
+Symbol eval_equal(AST* ast);
+Symbol eval_larger_equal(AST* ast);
+Symbol eval_larger(AST* ast);
+Symbol eval_less_equal(AST* ast);
+Symbol eval_less(AST* ast);
+Symbol eval_shl(AST* ast);
+Symbol eval_shr(AST* ast);
+Symbol eval_add(AST* ast);
+Symbol eval_sub(AST* ast);
+Symbol eval_mul(AST* ast);
+Symbol eval_div(AST* ast);
+Symbol eval_mod(AST* ast);
 
 typedef struct AST{
     AST();
@@ -56,10 +74,8 @@ typedef struct AST{
     void args(AST* ast);
     void pass_args(AST* ast);
 
-    void exp_elem(AST* ast);
-    void exp_term(AST* ast);
-    void exp_exp(AST* ast);
-    void exp(AST* ast);
+    AST* exp_elem();
+    AST* exp(int pre = -1);
 
     void stat(AST* ast);    // stats -> stat | stat {stats}
     void stat_if(AST *ast);
@@ -88,5 +104,6 @@ typedef struct AST{
 extern std::vector<Token *> tokens_;
 extern size_t consumed_index_;
 extern Env env_;
+extern std::map<ASTType , std::function<Symbol(AST*)>> arith_callback_;
 
 #endif //EVALUATE_H
