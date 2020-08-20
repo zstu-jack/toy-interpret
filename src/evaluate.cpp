@@ -11,7 +11,7 @@
 #else
 
 #endif
-
+Tokenizer* tokenizer_;
 std::vector<Token *> tokens_;
 size_t consumed_index_;
 Env env_;
@@ -49,11 +49,17 @@ std::string AST::peek_value(){
 std::string AST::last_value(){
     return tokens_[consumed_index_-1]->values_;
 }
+void AST::next_check(TokenType token_type){
+    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"line %d: %s\nline %d: %s\n     expected 【%s】 but got 【%s】\n",
+                tokens_[consumed_index_]->lines_ - 1,
+                tokenizer_->line2line_str_[tokens_[consumed_index_]->lines_-1].c_str(),
+                tokens_[consumed_index_]->lines_,
+                tokenizer_->line2line_str_[tokens_[consumed_index_]->lines_].c_str(),
+                tokentype_2_string[token_type].c_str(),
+                tokentype_2_string[tokens_[consumed_index_]->token_type_].c_str());
+}
 Token* AST::next(TokenType token_type){
-    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"consumed_index=%d, expected 【%s】 but got 【%s】 in line %d\n",
-                (int32_t)consumed_index_, tokentype_2_string[token_type].c_str(),
-                tokentype_2_string[tokens_[consumed_index_]->token_type_].c_str(),
-                tokens_[consumed_index_]->lines_);
+    next_check(token_type);
     return tokens_[consumed_index_ ++];
 }
 
@@ -147,12 +153,13 @@ void AST::args(AST* ast){
 
 // ----------------------------------------------------------------------- stats -----------------------------------------------------------------------------------
 void AST::stat_if(AST *ast) {
-    //  if
-    //exp block
+    //   if
+    //exp  {block}
     ast->ast_type_ = ASTType ::AST_IF;
     next(TokenType::LEFT_PARENTHESIS);
     ast->sub_asts_.push_back(ast->exp());
     next(TokenType::RIGHT_PARENTHESIS);
+    next_check(TokenType::LEFT_BRACE);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
 }
@@ -167,8 +174,8 @@ void AST::stat_while(AST *ast) {
     ast->ast_type_ = ASTType ::AST_WHILE;
     next(TokenType::LEFT_PARENTHESIS);
     ast->sub_asts_.push_back(ast->exp(-1));
-
     next(TokenType::RIGHT_PARENTHESIS);
+    next_check(TokenType::LEFT_BRACE);
     ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
     ast->stat(ast->sub_asts_.back());
 }
@@ -187,8 +194,9 @@ void AST::stat_function(AST *ast) {
     ast->stat(ast->sub_asts_.back());
 }
 void AST::stat_exp(AST *ast) {
-    //    assign
-    // sym      exp
+    //                      assign
+    //      sym                             exp
+    // complex symbol(index/keystring)    int/string/init-args.
     if(peek_type() == TokenType::LEFT_PARENTHESIS){
         ast->ast_type_ = ASTType ::AST_CALL;
         ast->ast_value_.str = last_value();
@@ -254,13 +262,17 @@ void AST::stat(AST* ast){
     cb[(TokenType)current->token_type_](ast);
 }
 
-AST* AST::build(std::vector<Token *> &tokens) {
-    ASSERT_EXIT(tokens.size() != 0, "no taken can be consumed.");
+AST* AST::build(Tokenizer* tokenizer) {
+    ASSERT_EXIT(tokenizer != nullptr, "nullptr");
+    tokenizer_ = tokenizer;
+
     consumed_index_ = 0;
-    tokens_ = tokens;
+    tokens_ = tokenizer->tokens_;
+    ASSERT_EXIT(tokens_.size() != 0, "no taken can be consumed.");
+
     // add builtin functions into env.
     ast_type_ = ASTType ::AST_BLOCK;
-    while(consumed_index_ < tokens.size()){
+    while(consumed_index_ < tokens_.size()){
         sub_asts_.push_back(new AST());
         stat(sub_asts_.back());
     }

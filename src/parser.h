@@ -16,17 +16,25 @@ public:
 };
 
 struct Tokenizer{
-    void incp(size_t& p, size_t offset);
+    Tokenizer();
+
+    void incp(size_t& p, size_t offset = 1);
     void parse(const std::string& text);
     void print();
+    void print_lines();
 
     bool is_symbol_start(char c);
     bool is_digit(char c);
     bool is_symbol(char c);
     bool is_operator(char c);
+    bool pass_linefeed();
 
     std::vector<Token*> tokens_;
+
     std::string program_;
+    std::map<int, std::string> line2line_str_;
+
+    size_t _p, _lp, _line, _linep_start;
 };
 
 

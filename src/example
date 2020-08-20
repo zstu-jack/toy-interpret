@@ -25,6 +25,9 @@ str1="abcd";
 str2="gg";
 print(str2+str1+str2);
 
+g.x.y = 999;
+print(g.x.y);
+
 t = 0;
 x = 0;
 function test(){

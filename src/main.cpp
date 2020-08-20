@@ -40,10 +40,9 @@ int main(int argc, char* argvs[]) {
     init();
 
     if(argc == 1){
-        std::string statement;
-        for(;;){
-            std::cin >> statement;
-        }
+        std::cout << "usage: only parser file is supported for now" << std::endl;
+        std::cout << "usage: binary program file (etc.. a.out example)" << std::endl;
+        exit(0);
         // interrupt.
     }
 
@@ -52,13 +51,14 @@ int main(int argc, char* argvs[]) {
     tokenizer->parse(program);
 
 #ifdef DEBUG
-    tokenizer->print();
+//    tokenizer->print();
+    tokenizer->print_lines();
 #endif
 
-    blocks = blocks->build(tokenizer->tokens_);
+    blocks = blocks->build(tokenizer);
 
 #ifdef DEBUG
-     blocks->print(0, blocks);
+    blocks->print(0, blocks);
 #endif
 
     blocks->interpret(blocks);
