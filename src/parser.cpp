@@ -14,7 +14,7 @@ Token::Token(TokenType token_type_, const std::string& values_, int line){
     this->lines_ = line;
 }
 
-bool Tokenizer::is_symbol_start(char c){ return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c == '.'; }
+bool Tokenizer::is_symbol_start(char c){ return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
 bool Tokenizer::is_digit(char c){ return c >= '0' && c <= '9'; }
 bool Tokenizer::is_symbol(char c){ return is_symbol_start(c) || is_digit(c); }
 bool Tokenizer::is_operator(char c){ return op_keywords.find(c) != std::string::npos; }
@@ -131,7 +131,7 @@ void Tokenizer::parse(const std::string& text){
             tokens_.push_back(new Token(op_char_token[key], key, _line));
         }
         else if(easy_char_token.count(std::string(1, cp))){
-            // string or `{ ( ; ,`
+            // string or `{ ( ; , . [`
             incp(_p);
             if(cp == '\"'){
                 ++ _lp;
@@ -158,13 +158,13 @@ void Tokenizer::parse(const std::string& text){
         line2line_str_[_line ++] = program_.substr(_linep_start,  _p - _linep_start);
     }
 
-    ASSERT_EXIT(_p == text.size(), "error. string to be parsed:[%s]", text.substr(_p).c_str());
+    ASSERT_EXIT(_p == text.size(), "error. string to be parsed:\n\n%s\n\n", text.substr(_p).c_str());
 }
 
 void Tokenizer::print(){
     int i = 0;
     for(auto& token : tokens_){
-        printf("%03d|%5d|%20s|\n", i ++, token->token_type_, token->values_.c_str());
+        printf("%03d|%10s|%20s|\n", i ++, tokentype_2_string[token->token_type_].c_str(), token->values_.c_str());
     }
 }
 void Tokenizer::print_lines(){

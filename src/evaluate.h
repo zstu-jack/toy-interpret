@@ -61,6 +61,7 @@ Symbol eval_mod(AST* ast);
 typedef struct AST{
     AST();
     AST(ASTType type);
+    AST(ASTType type, const std::string& str);
 
     std::vector<AST*> sub_asts_;
     ASTType ast_type_;
@@ -76,7 +77,7 @@ typedef struct AST{
     std::string last_value();
 
     void args(AST* ast);
-    void pass_args(AST* ast);
+    void pass_args(AST* ast, TokenType end);
 
     AST* exp_elem();
     AST* exp(int pre = -1);

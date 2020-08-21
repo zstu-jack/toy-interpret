@@ -51,7 +51,7 @@ int main(int argc, char* argvs[]) {
     tokenizer->parse(program);
 
 #ifdef DEBUG
-//    tokenizer->print();
+    tokenizer->print();
     tokenizer->print_lines();
 #endif
 

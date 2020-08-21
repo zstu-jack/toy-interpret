@@ -4,10 +4,13 @@
 #include "parser.h"
 #include <functional>
 #include <cmath>
+#include <stdlib.h>
 
 #if defined(__linux__)
 #include <sys/time.h>
 #include <utime.h>
+#include <sys/types.h>
+#include <unistd.h>
 #else
 
 #endif
@@ -34,6 +37,10 @@ std::string Symbol::tostring(){
 AST::AST(ASTType type){
     this->ast_type_ = type;
 }
+AST::AST(ASTType type, const std::string& str){
+    this->ast_type_ = type;
+    this->ast_value_.str = str;
+}
 AST::AST(){}
 
 TokenType AST::peek_type(){
@@ -43,20 +50,21 @@ TokenType AST::peek_type(){
     return (TokenType)tokens_[consumed_index_]->token_type_;
 }
 std::string AST::peek_value(){
-    ASSERT_EXIT(consumed_index_ < tokens_.size(), "consumed_index_(%u) exceed", consumed_index_);
+    ASSERT_EXIT(consumed_index_ < tokens_.size(), "consumed_index_(%lu) exceed", consumed_index_);
     return tokens_[consumed_index_]->values_;
 }
 std::string AST::last_value(){
     return tokens_[consumed_index_-1]->values_;
 }
 void AST::next_check(TokenType token_type){
-    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"line %d: %s\nline %d: %s\n     expected 【%s】 but got 【%s】\n",
+    ASSERT_EXIT(tokens_[consumed_index_]->token_type_ == token_type,"\nline %d: %s\nline %d: %s\n     expected 【%s】 but got 【%s】in line %d \n\n",
                 tokens_[consumed_index_]->lines_ - 1,
                 tokenizer_->line2line_str_[tokens_[consumed_index_]->lines_-1].c_str(),
                 tokens_[consumed_index_]->lines_,
                 tokenizer_->line2line_str_[tokens_[consumed_index_]->lines_].c_str(),
                 tokentype_2_string[token_type].c_str(),
-                tokentype_2_string[tokens_[consumed_index_]->token_type_].c_str());
+                tokentype_2_string[tokens_[consumed_index_]->token_type_].c_str(),
+                tokens_[consumed_index_]->lines_);
 }
 Token* AST::next(TokenType token_type){
     next_check(token_type);
@@ -85,7 +93,7 @@ AST* AST::exp_elem(){
         if(peek_type() == TokenType::LEFT_PARENTHESIS){
             ast->ast_type_ = ASTType ::AST_CALL;
             next(TokenType::LEFT_PARENTHESIS);
-            pass_args(ast);
+            pass_args(ast, TokenType::RIGHT_PARENTHESIS);
             next(TokenType::RIGHT_PARENTHESIS);
         }
     }else if(peek_type() == TokenType::STRING){
@@ -93,16 +101,29 @@ AST* AST::exp_elem(){
         ast->ast_value_.str = peek_value();
         next(TokenType::STRING);
     }else{
-        ASSERT_EXIT(false, "unexpected token type (%s) consume_index = %u\n", tokentype_2_string[peek_type()].c_str(), consumed_index_);
+        ASSERT_EXIT(false, "unexpected token type (%s) consume_index = %lu\n", tokentype_2_string[peek_type()].c_str(), consumed_index_);
     }
     return ast;
 }
 
 AST* AST::exp(int pre){
 
+    if(peek_type() == TokenType::LEFT_BRACE){
+        ASSERT_EXIT(pre == -1, "should be a init-list");
+        next(TokenType::LEFT_BRACE);
+        AST* node = new AST(ASTType::AST_INITLIST);
+        pass_args(node, TokenType::RIGHT_BRACE);
+        next(TokenType::RIGHT_BRACE);
+        return node;
+    }
+
     // TODO: unary operator
     AST* left = exp_elem();
-    if(peek_type() == TokenType::SEMICOLON || peek_type() == TokenType::RIGHT_BRACE || peek_type() == TokenType::COMMA){
+
+    if(peek_type() == TokenType::SEMICOLON
+    || peek_type() == TokenType::RIGHT_BRACE
+    || peek_type() == TokenType::COMMA
+    || peek_type() == TokenType::RIGHT_BRACKET){
         // printf("find[;] at consumed_index = %u\n", consumed_index_);
         return left;
     }
@@ -126,11 +147,11 @@ AST* AST::exp(int pre){
     return left;
 }
 
-void AST::pass_args(AST* ast){
+void AST::pass_args(AST* ast, TokenType end){
     for(;;){
-        if(peek_type() == TokenType::RIGHT_PARENTHESIS) break;
+        if(peek_type() == end) break;
         ast->sub_asts_.push_back(ast->exp());
-        if(peek_type() == TokenType::RIGHT_PARENTHESIS) break;
+        if(peek_type() == end) break;
         next(TokenType::COMMA);
     }
 }
@@ -201,11 +222,28 @@ void AST::stat_exp(AST *ast) {
         ast->ast_type_ = ASTType ::AST_CALL;
         ast->ast_value_.str = last_value();
         next(TokenType::LEFT_PARENTHESIS);
-        pass_args(ast);
+        pass_args(ast, TokenType::RIGHT_PARENTHESIS);
         next(TokenType::RIGHT_PARENTHESIS);
     }else{
-        ast->sub_asts_.push_back(new AST(ASTType ::AST_SYM));
-        ast->sub_asts_.back()->ast_value_.str = last_value();
+        ast->sub_asts_.push_back(new AST(ASTType ::AST_SYM, last_value()));
+        auto sym = ast->sub_asts_.back();
+        auto type = peek_type();
+        while (type != TokenType::OP_ASSIGN){
+            switch(type){
+                case TokenType::LEFT_BRACKET:
+                    next(TokenType::LEFT_BRACKET);
+                    sym->sub_asts_.push_back(ast->exp(-1));
+                    next(TokenType::RIGHT_BRACKET);
+                    break;
+                case TokenType::DOT:
+                    next(TokenType::DOT);
+                    sym->sub_asts_.push_back(new AST(ASTType::AST_SYM, next(TokenType::SYMBOL)->values_));
+                    break;
+                default:
+                    next_check(TokenType::OP_ASSIGN);
+            }
+            type = peek_type();
+        }
         next(TokenType::OP_ASSIGN);
         ast->ast_type_ = ASTType ::AST_ASSIGN;
         ast->sub_asts_.push_back(ast->exp(-1));
@@ -292,11 +330,15 @@ void AST::print(int deep, AST* ast){
     printf("%s", asttype_2_str_[ast->ast_type_].c_str());
     switch (ast->ast_type_){
         case ASTType ::AST_INTEGER: {
-            printf("(%d)\n", ast->ast_value_.num);
+            printf("(%lld)\n", ast->ast_value_.num);
             break;
         }
         case ASTType ::AST_DECIMAL: {
             printf("(%.2f)\n", ast->ast_value_.dec);
+            break;
+        }
+        case ASTType ::AST_STRING: {
+            printf("(%s)\n", ast->ast_value_.str.c_str());
             break;
         }
         case ASTType ::AST_FUN:
@@ -633,7 +675,8 @@ Symbol AST::eval_builtin(AST* ast){
                 printf("%s", symbol.str.c_str());
             }else{
                 print(ast);
-                ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%d)(num=%d)(dec=%.2f)", name.c_str(), symbol.value_type_, symbol.num, symbol.dec);
+                ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%s)(num=%lld)(dec=%.2f)",
+                        name.c_str(), asttype_2_str_[symbol.value_type_].c_str(), symbol.num, symbol.dec);
             }
         };
         for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
@@ -660,8 +703,6 @@ Symbol AST::eval_symbol(AST* ast){
 }
 
 Symbol AST::eval_exp(AST* ast){
-
-    // TODO: wrapper exp and support more operate and conversion of operands
     Symbol result;
     if(ast->ast_type_ == ASTType::AST_EXP){
         return eval_exp(ast->sub_asts_[0]);
@@ -774,9 +815,9 @@ Symbol AST::interpret(AST* block) {
         if(symbol.return_flag_) return symbol;
     }
     return symbol;
-    // FIXME: placeholder of print check.
     // FIXME: if(){} dele brace in script.
     // TODO: enter block like(if/while) cover the local variable;
+    // TODO: wrapper exp and support more operate and conversion of operands
 }
 
 

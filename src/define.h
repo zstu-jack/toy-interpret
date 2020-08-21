@@ -93,8 +93,10 @@ enum class ASTType{
     AST_FUN,
     AST_CALL,
     AST_RETURN,
+    AST_INITLIST,
 
     AST_SYM,
+    AST_INDEXING,
     AST_INTEGER,
     AST_DECIMAL,
     AST_STRING,
