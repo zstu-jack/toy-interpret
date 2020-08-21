@@ -46,8 +46,11 @@ enum class TokenType{
     RIGHT_PARENTHESIS,
     LEFT_BRACE,
     RIGHT_BRACE,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
     SEMICOLON,
     COMMA,
+    DOT,
 
     KEY_WHILE,
     KEY_IF,
@@ -90,8 +93,10 @@ enum class ASTType{
     AST_FUN,
     AST_CALL,
     AST_RETURN,
+    AST_INITLIST,
 
     AST_SYM,
+    AST_INDEXING,
     AST_INTEGER,
     AST_DECIMAL,
     AST_STRING,

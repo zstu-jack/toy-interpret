@@ -9,6 +9,7 @@
 
 struct AST;
 struct Token;
+struct Tokenizer;
 enum class TokenType;
 
 typedef struct FuncProto{
@@ -23,6 +24,8 @@ typedef struct Symbol{
     long long num;
     double dec;
     FuncProto func;
+
+
     ASTType value_type_;
 
     int return_flag_;
@@ -58,6 +61,7 @@ Symbol eval_mod(AST* ast);
 typedef struct AST{
     AST();
     AST(ASTType type);
+    AST(ASTType type, const std::string& str);
 
     std::vector<AST*> sub_asts_;
     ASTType ast_type_;
@@ -68,11 +72,12 @@ typedef struct AST{
 
     TokenType peek_type();
     std::string peek_value();
+    void next_check(TokenType token_type);
     Token* next(TokenType token_type);
     std::string last_value();
 
     void args(AST* ast);
-    void pass_args(AST* ast);
+    void pass_args(AST* ast, TokenType end);
 
     AST* exp_elem();
     AST* exp(int pre = -1);
@@ -80,13 +85,14 @@ typedef struct AST{
     void stat(AST* ast);    // stats -> stat | stat {stats}
     void stat_if(AST *ast);
     void stat_while(AST *ast);
-    void stat_exp(AST *ast);
     void stat_return(AST *ast);
-    void stat_function(AST *ast);
     void stat_brace(AST *ast);
     void stat_print(AST *ast);
     void stat_input(AST *ast);
-    AST* build(std::vector<Token*>& tokens);
+    void stat_function(AST *ast);
+    void stat_exp(AST *ast);
+
+    AST* build(Tokenizer* tokenizer);
 
     int is_builtin(AST* ast);
     Symbol eval_builtin(AST* ast);
@@ -100,7 +106,7 @@ typedef struct AST{
     Symbol interpret(AST* ast);
 
 }AST;
-
+extern Tokenizer* tokenizer_;
 extern std::vector<Token *> tokens_;
 extern size_t consumed_index_;
 extern Env env_;

@@ -37,12 +37,15 @@ std::map<std::string, TokenType> op_char_token = {
         {"=", TokenType ::OP_ASSIGN},
 };
 std::map<std::string, TokenType> easy_char_token = {
+        {"[", TokenType ::LEFT_BRACKET},
+        {"]", TokenType ::RIGHT_BRACKET},
         {"{", TokenType ::LEFT_BRACE},
         {"}", TokenType ::RIGHT_BRACE},
         {"(", TokenType ::LEFT_PARENTHESIS},
         {")", TokenType ::RIGHT_PARENTHESIS},
         {";", TokenType ::SEMICOLON},
         {",", TokenType ::COMMA},
+        {".", TokenType ::DOT},
         {"'", TokenType ::QUOTATION},
         {"\"", TokenType ::DQUOTATION},
 };
@@ -104,6 +107,8 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::STRING, "string"},
         {TokenType ::LEFT_PARENTHESIS, "("},
         {TokenType ::RIGHT_PARENTHESIS, ")"},
+        {TokenType ::LEFT_BRACKET, "["},
+        {TokenType ::RIGHT_BRACKET, "]"},
         {TokenType ::LEFT_BRACE, "{"},
         {TokenType ::RIGHT_BRACE, "}"},
         {TokenType ::SEMICOLON, ";"},
@@ -152,6 +157,7 @@ std::map<ASTType, std::string> asttype_2_str_ = {
         {ASTType::AST_FUN, "func"},
         {ASTType::AST_CALL, "call"},
         {ASTType::AST_RETURN, "return"},
+        {ASTType::AST_INITLIST, "initlist"},
 
         {ASTType::AST_SYM, "sym"},
         {ASTType::AST_INTEGER, "integer"},
