@@ -24,10 +24,67 @@ Symbol::Symbol(){
     dec = 0;
     str = "";
     return_flag_ = 0;
+    object = nullptr;
 
     func.args_symbol_.clear();
     func.ast = nullptr;
-    return_flag_ = 0;
+}
+Symbol::~Symbol(){
+    if(value_type_ == ASTType::AST_OBJECT){
+        if(object == nullptr){
+            return ;
+        }
+        delete object;
+        object = nullptr;
+    }
+}
+Symbol::Symbol(const Symbol& symbol){
+    this->object = nullptr;
+    this->value_type_ = symbol.value_type_;
+    this->str = symbol.str;
+    this->num = symbol.num;
+    this->dec = symbol.dec;
+    this->func = symbol.func;
+    this->return_flag_ = symbol.return_flag_;
+    if(symbol.object != nullptr){
+        this->object = new Object;
+        (*(this->object)) = *symbol.object;
+    }
+}
+Symbol& Symbol::operator=(const Symbol& symbol){
+    this->object = nullptr;
+    this->value_type_ = symbol.value_type_;
+    this->str = symbol.str;
+    this->num = symbol.num;
+    this->dec = symbol.dec;
+    this->func = symbol.func;
+    this->return_flag_ = symbol.return_flag_;
+    if(symbol.object != nullptr){
+        this->object = new Object;
+        (*(this->object)) = *symbol.object;
+    }
+    return *this;
+}
+Symbol::Symbol(Symbol&& symbol){
+    this->value_type_ = symbol.value_type_;
+    this->str = symbol.str;
+    this->num = symbol.num;
+    this->dec = symbol.dec;
+    this->func = symbol.func;
+    this->return_flag_ = symbol.return_flag_;
+    this->object = symbol.object;
+    symbol.object = nullptr;
+}
+Symbol& Symbol::operator=(Symbol&& symbol){
+    this->value_type_ = symbol.value_type_;
+    this->str = symbol.str;
+    this->num = symbol.num;
+    this->dec = symbol.dec;
+    this->func = symbol.func;
+    this->return_flag_ = symbol.return_flag_;
+    this->object = symbol.object;
+    symbol.object = nullptr;
+    return *this;
 }
 
 std::string Symbol::tostring(){
@@ -90,6 +147,29 @@ AST* AST::exp_elem(){
         ast = new AST(ASTType ::AST_SYM);
         ast->ast_value_.str = peek_value();
         next(TokenType::SYMBOL);
+
+        // TODO: elimate replicate code snip.
+        auto sym = ast;
+        auto type = peek_type();
+        while (type == TokenType::DOT || type == TokenType::LEFT_BRACKET){
+            switch(type){
+                case TokenType::LEFT_BRACKET:
+                    next(TokenType::LEFT_BRACKET);
+                    sym->sub_asts_.push_back(new AST(ASTType::AST_INTEGER));
+                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
+                    next(TokenType::RIGHT_BRACKET);
+                    break;
+                case TokenType::DOT:
+                    next(TokenType::DOT);
+                    sym->sub_asts_.push_back(new AST(ASTType::AST_STRING));
+                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
+                    break;
+                default:
+                    next_check(TokenType::OP_ASSIGN);
+            }
+            type = peek_type();
+        }
+
         if(peek_type() == TokenType::LEFT_PARENTHESIS){
             ast->ast_type_ = ASTType ::AST_CALL;
             next(TokenType::LEFT_PARENTHESIS);
@@ -101,7 +181,7 @@ AST* AST::exp_elem(){
         ast->ast_value_.str = peek_value();
         next(TokenType::STRING);
     }else{
-        ASSERT_EXIT(false, "unexpected token type (%s) consume_index = %lu\n", tokentype_2_string[peek_type()].c_str(), consumed_index_);
+        ASSERT_EXIT(false, "unexpected token type (`%s`) consume_index = %lu\n", tokentype_2_string[peek_type()].c_str(), consumed_index_);
     }
     return ast;
 }
@@ -121,15 +201,21 @@ AST* AST::exp(int pre){
     AST* left = exp_elem();
 
     if(peek_type() == TokenType::SEMICOLON
-    || peek_type() == TokenType::RIGHT_BRACE
     || peek_type() == TokenType::COMMA
-    || peek_type() == TokenType::RIGHT_BRACKET){
+    || peek_type() == TokenType::RIGHT_BRACE
+    || peek_type() == TokenType::RIGHT_BRACKET
+    ){
         // printf("find[;] at consumed_index = %u\n", consumed_index_);
         return left;
     }
     for(;;){
         TokenType tokenType = peek_type();
-        if(tokenType == TokenType::RIGHT_PARENTHESIS || tokenType == TokenType::RIGHT_BRACE || tokenType == TokenType::SEMICOLON || tokenType == TokenType::COMMA){
+        // TODO: need refactor: exp end.
+        if(tokenType == TokenType::RIGHT_PARENTHESIS
+        || tokenType == TokenType::RIGHT_BRACE
+        || tokenType == TokenType::RIGHT_BRACKET
+        || tokenType == TokenType::SEMICOLON
+        || tokenType == TokenType::COMMA){
             break;
         }
         int nxt_precedence = op_precedences[tokenType];
@@ -232,12 +318,14 @@ void AST::stat_exp(AST *ast) {
             switch(type){
                 case TokenType::LEFT_BRACKET:
                     next(TokenType::LEFT_BRACKET);
-                    sym->sub_asts_.push_back(ast->exp(-1));
+                    sym->sub_asts_.push_back(new AST(ASTType::AST_INTEGER));
+                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
                     next(TokenType::RIGHT_BRACKET);
                     break;
                 case TokenType::DOT:
                     next(TokenType::DOT);
-                    sym->sub_asts_.push_back(new AST(ASTType::AST_SYM, next(TokenType::SYMBOL)->values_));
+                    sym->sub_asts_.push_back(new AST(ASTType::AST_STRING));
+                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
                     break;
                 default:
                     next_check(TokenType::OP_ASSIGN);
@@ -630,6 +718,29 @@ int AST::is_builtin(AST *ast) {
     return fname == "input" || fname == "print" || fname == "time";
 }
 
+void AST::print_symbol(std::string name, const Symbol& symbol){
+    if(symbol.value_type_ == ASTType::AST_INTEGER){
+        printf("%lld", symbol.num);
+    }
+    else if(symbol.value_type_ == ASTType::AST_DECIMAL){
+        printf("%.2f", symbol.dec);
+    }else if(symbol.value_type_ == ASTType::AST_STRING){
+        printf("%s", symbol.str.c_str());
+    }else if(symbol.value_type_ == ASTType::AST_OBJECT){
+        ASSERT_EXIT(symbol.object != nullptr, "object == nullptr");
+        for(auto& pi : symbol.object->obj_){
+            printf("<%d = ", pi.first);
+            print_symbol(name, pi.second);
+            printf(">  ");
+        }
+    }
+    else{
+//                print(ast);
+        ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%s)(num=%lld)(dec=%.2f)",
+                    name.c_str(), asttype_2_str_[symbol.value_type_].c_str(), symbol.num, symbol.dec);
+    }
+}
+
 Symbol AST::eval_builtin(AST* ast){
 
     Symbol symbol{};
@@ -665,22 +776,8 @@ Symbol AST::eval_builtin(AST* ast){
     }
 
     if(fname == "print"){
-        auto print_sym = [=](std::string name, const Symbol& symbol){
-            if(symbol.value_type_ == ASTType::AST_INTEGER){
-                printf("%lld", symbol.num);
-            }
-            else if(symbol.value_type_ == ASTType::AST_DECIMAL){
-                printf("%.2f", symbol.dec);
-            }else if(symbol.value_type_ == ASTType::AST_STRING){
-                printf("%s", symbol.str.c_str());
-            }else{
-                print(ast);
-                ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%s)(num=%lld)(dec=%.2f)",
-                        name.c_str(), asttype_2_str_[symbol.value_type_].c_str(), symbol.num, symbol.dec);
-            }
-        };
         for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
-            print_sym("[QAQ]", eval_exp(ast->sub_asts_[i]));
+            print_symbol("[QAQ]", eval_exp(ast->sub_asts_[i]));
             printf("%c", i + 1 == ast->sub_asts_.size() ? '\n' : ' ');
         }
         return symbol;
@@ -690,22 +787,44 @@ Symbol AST::eval_builtin(AST* ast){
 }
 
 Symbol AST::eval_symbol(AST* ast){
+
     if(env_.current_.size()){
         auto& hsh = env_.current_.back();
+//        for(auto symbol :hsh){
+//            printf("env symbol: %s \n", symbol.first.c_str());
+//        }
         if(hsh.count(ast->ast_value_.str)){
             return hsh[ast->ast_value_.str];
         }
     }
+//    for(auto symbol :env_.global_){
+//        printf("global symbol: %s \n", symbol.first.c_str());
+//    }
     if(env_.global_.count(ast->ast_value_.str)){
         return env_.global_[ast->ast_value_.str];
     }
-    ASSERT_EXIT(false, "use undefined symbol(%s)", ast->ast_value_.str.c_str());
+    ASSERT_EXIT(false, "use undefined symbol(%s)\n", ast->ast_value_.str.c_str());
 }
 
 Symbol AST::eval_exp(AST* ast){
     Symbol result;
     if(ast->ast_type_ == ASTType::AST_EXP){
         return eval_exp(ast->sub_asts_[0]);
+    }
+    else if(ast->ast_type_ == ASTType::AST_INITLIST){
+        // TODO: abstract object as a symbol.
+        //       Now use object as a operand.
+        result.value_type_ = ASTType ::AST_OBJECT;
+        result.object = new Object;
+        auto& mp = result.object->obj_;
+        for(int i = 0; i < ast->sub_asts_.size(); ++ i){
+            mp[i] = eval_exp(ast->sub_asts_[i]);
+        }
+    }
+    else if(ast->ast_type_ == ASTType::AST_OBJECT){
+        result.object = new Object;
+        (*result.object) = (*ast->ast_value_.object);
+        result.value_type_ = ASTType ::AST_OBJECT;
     }
     else if(ast->ast_type_ == ASTType::AST_STRING){
         result.str = ast->ast_value_.str;
@@ -721,6 +840,26 @@ Symbol AST::eval_exp(AST* ast){
     }
     else if(ast->ast_type_ == ASTType::AST_SYM){
         result = eval_symbol(ast);
+        // operand.
+        auto& subs = ast->sub_asts_;
+        for(int i = 0; i < subs.size(); ++ i){
+            ASSERT_EXIT(result.object != nullptr, "obj == nullptr");
+            // TODO: eliminate replicate codee snip.
+            // TODO: check return type;
+            if(subs[i]->ast_type_ == ASTType::AST_STRING){
+                std::string id = eval_exp(subs[i]->sub_asts_[0]).str;
+                ASSERT_EXIT(result.object->idx_.count(id), "no such index(%s) in object(%s)\n", subs[i]->ast_value_.str.c_str(),result.str.c_str());
+                int idx = result.object->idx_[id];
+                ASSERT_EXIT(result.object->obj_.count(idx), "no such index(%d) in object(%s)\n", idx, result.str.c_str());
+                result = result.object->obj_[idx];
+            }else if(subs[i]->ast_type_ == ASTType::AST_INTEGER){
+                int idx = eval_exp(subs[i]->sub_asts_[0]).num;
+                ASSERT_EXIT(result.object->obj_.count(idx), "no such index(%d) in object(%s)\n", idx, result.str.c_str());
+                result = result.object->obj_[idx];
+            }else{
+                ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM's son node\n", asttype_2_str_[subs[i]->ast_type_].c_str());
+            }
+        }
     }
     else if(ast->ast_type_ == ASTType::AST_CALL){
         result = eval_call(ast);
@@ -729,20 +868,58 @@ Symbol AST::eval_exp(AST* ast){
         result = arith_callback_[ast->ast_type_](ast);
     }else{
         print(ast);
-        ASSERT_EXIT(false, "unexpected asttype(%s)", asttype_2_str_[ast->ast_type_].c_str());
+        ASSERT_EXIT(false, "unexpected asttype(%s)\n", asttype_2_str_[ast->ast_type_].c_str());
     }
     return result;
 }
 
 Symbol AST::eval_assign(AST* ast){
-    auto symbol = ast->sub_asts_[0]->ast_value_.str;
+
+    auto symbol_node = ast->sub_asts_[0];
+    auto symbol_name = symbol_node->ast_value_.str;
     auto val = eval_exp(ast->sub_asts_[1]);
-    if(env_.current_.size()){
-        auto& hsh = env_.current_.back();
-        hsh[symbol] = val;
-        return val;
+
+    Symbols * gsym = nullptr;
+    if(env_.current_.size() && env_.current_.back().count(symbol_name)){
+        gsym = &env_.current_.back();
     }
-    return env_.global_[symbol] = val;
+    if(gsym == nullptr && env_.global_.count(symbol_name)){
+        gsym = &env_.global_;
+    }
+    if(gsym == nullptr) {
+        if (env_.current_.size()) {
+            gsym = &env_.current_[env_.current_.size()-1];
+        }
+    }
+    if(gsym == nullptr){
+        gsym = &env_.global_;
+    }
+    Symbol* psym = &((*gsym)[symbol_name]);
+
+    for(auto ast : symbol_node->sub_asts_){
+        int32_t idx = -1;
+        if(psym->object == nullptr){
+            psym->object = new Object;
+        }
+        if(ast->ast_type_ == ASTType::AST_STRING){
+            // TODO: check type;
+            std::string idxname = eval_exp(ast->sub_asts_[0]).str;
+            if(psym->object->idx_.count(idxname)){
+                idx = psym->object->idx_[idxname];
+            }else{
+                if(psym->object->obj_.size() == 0) idx = 0;
+                else idx = (psym->object->obj_.rbegin()->first)+1;
+            }
+        }else if(ast->ast_type_ == ASTType::AST_INTEGER){
+            // TODO: check type;
+            idx = eval_exp(ast->sub_asts_[0]).num;
+        }else{
+            ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM(%s) son node\n", asttype_2_str_[ast->ast_type_].c_str(), symbol_name.c_str());
+        }
+        psym = &(psym->object->obj_[idx]);
+    }
+    (*psym) = val;
+    return (*psym);
 }
 Symbol AST::eval_while(AST* ast){
     Symbol symbol;

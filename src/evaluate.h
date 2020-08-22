@@ -10,6 +10,8 @@
 struct AST;
 struct Token;
 struct Tokenizer;
+struct Object;
+struct Symbol;
 enum class TokenType;
 
 typedef struct FuncProto{
@@ -17,20 +19,31 @@ typedef struct FuncProto{
     AST* ast;
 }FuncProto;
 
+
 typedef struct Symbol{
     Symbol();
+    ~Symbol();
+    Symbol(const Symbol& symbol);
+    Symbol(Symbol&& symbol);
+    Symbol& operator=(const Symbol& symbol);
+    Symbol& operator=(Symbol&& symbol);
 
     std::string str;
     long long num;
     double dec;
+    Object* object;
+
     FuncProto func;
-
-
     ASTType value_type_;
 
     int return_flag_;
     std::string tostring();
 }Symbol;
+
+typedef struct Object{
+    std::map<int, Symbol> obj_;
+    std::map<std::string, int> idx_;
+}Object;
 
 typedef std::map<std::string, Symbol> Symbols;
 struct Env{
@@ -69,6 +82,7 @@ typedef struct AST{
 
     void print(AST* ast);
     void print(int deep, AST* ast);
+    void print_symbol(std::string name, const Symbol& symbol);
 
     TokenType peek_type();
     std::string peek_value();
@@ -98,7 +112,7 @@ typedef struct AST{
     Symbol eval_builtin(AST* ast);
     Symbol eval_function(AST* ast);
     Symbol eval_symbol(AST* ast);
-    Symbol eval_exp(AST* ast);          // TODO
+    Symbol eval_exp(AST* ast);
     Symbol eval_assign(AST* ast);
     Symbol eval_if(AST* ast);
     Symbol eval_while(AST* ast);
