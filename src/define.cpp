@@ -157,12 +157,13 @@ std::map<ASTType, std::string> asttype_2_str_ = {
         {ASTType::AST_FUN, "func"},
         {ASTType::AST_CALL, "call"},
         {ASTType::AST_RETURN, "return"},
-        {ASTType::AST_INITLIST, "initlist"},
 
         {ASTType::AST_SYM, "sym"},
         {ASTType::AST_INTEGER, "integer"},
         {ASTType::AST_DECIMAL, "decimal"},
         {ASTType::AST_STRING, "string"},
+        {ASTType::AST_INITLIST, "init-list"},
+        {ASTType::AST_OBJECT, "object"},
 
         {ASTType ::AST_OR, "||"},
         {ASTType ::AST_AND, "&&"},
