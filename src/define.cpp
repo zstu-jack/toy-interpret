@@ -51,6 +51,7 @@ std::map<std::string, TokenType> easy_char_token = {
 };
 
 std::map<TokenType ,int> op_precedences = {
+        {TokenType::OP_ASSIGN,0},
         {TokenType::OP_OR,1},
         {TokenType::OP_AND,2},
         {TokenType::OP_BIT_OR,3},
@@ -72,6 +73,7 @@ std::map<TokenType ,int> op_precedences = {
 };
 
 std::map<TokenType , ASTType> tokentype_2_asttype_ = {
+{TokenType ::OP_ASSIGN, ::ASTType ::AST_ASSIGN},
 {TokenType ::OP_OR, ASTType ::AST_OR},
 {TokenType ::OP_AND, ASTType ::AST_AND},
 {TokenType ::OP_BIT_OR, ASTType ::AST_BIT_OR},

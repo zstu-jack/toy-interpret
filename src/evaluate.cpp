@@ -131,7 +131,12 @@ Token* AST::next(TokenType token_type){
 // ----------------------------------------------------------------------- exp -----------------------------------------------------------------------------------
 AST* AST::exp_elem(){
     AST* ast;
-    if(peek_type() == TokenType::LEFT_PARENTHESIS){
+    if(peek_type() == TokenType::LEFT_BRACE){
+        next(TokenType::LEFT_BRACE);
+        ast = new AST(ASTType::AST_INITLIST);
+        pass_args(ast, TokenType::RIGHT_BRACE);
+        next(TokenType::RIGHT_BRACE);
+    } else if(peek_type() == TokenType::LEFT_PARENTHESIS){
         next(TokenType::LEFT_PARENTHESIS);
         ast = exp(-1);
         next(TokenType::RIGHT_PARENTHESIS);
@@ -148,7 +153,6 @@ AST* AST::exp_elem(){
         ast->ast_value_.str = peek_value();
         next(TokenType::SYMBOL);
 
-        // TODO: elimate replicate code snip.
         auto sym = ast;
         auto type = peek_type();
         while (type == TokenType::DOT || type == TokenType::LEFT_BRACKET){
@@ -169,7 +173,6 @@ AST* AST::exp_elem(){
             }
             type = peek_type();
         }
-
         if(peek_type() == TokenType::LEFT_PARENTHESIS){
             ast->ast_type_ = ASTType ::AST_CALL;
             next(TokenType::LEFT_PARENTHESIS);
@@ -187,15 +190,6 @@ AST* AST::exp_elem(){
 }
 
 AST* AST::exp(int pre){
-
-    if(peek_type() == TokenType::LEFT_BRACE){
-        ASSERT_EXIT(pre == -1, "should be a init-list");
-        next(TokenType::LEFT_BRACE);
-        AST* node = new AST(ASTType::AST_INITLIST);
-        pass_args(node, TokenType::RIGHT_BRACE);
-        next(TokenType::RIGHT_BRACE);
-        return node;
-    }
 
     // TODO: unary operator
     AST* left = exp_elem();
@@ -242,7 +236,8 @@ void AST::pass_args(AST* ast, TokenType end){
     }
 }
 
-void AST::args(AST* ast){
+AST* AST::args(){
+    AST* ast = new AST(ASTType::AST_ARGS);
     for(int i = 1;; i ++){
         if(peek_type() == TokenType::RIGHT_PARENTHESIS){
             break;
@@ -256,21 +251,23 @@ void AST::args(AST* ast){
         }
         next(TokenType::COMMA);
     }
+    return ast;
 }
 
 // ----------------------------------------------------------------------- stats -----------------------------------------------------------------------------------
-void AST::stat_if(AST *ast) {
+AST* AST::stat_if() {
     //   if
     //exp  {block}
-    ast->ast_type_ = ASTType ::AST_IF;
+    AST* ast = new AST(ASTType ::AST_IF);
+    next(TokenType::KEY_IF);
     next(TokenType::LEFT_PARENTHESIS);
     ast->sub_asts_.push_back(ast->exp());
     next(TokenType::RIGHT_PARENTHESIS);
     next_check(TokenType::LEFT_BRACE);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
-    ast->stat(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(stat());
+    return ast;
 }
-void AST::stat_while(AST *ast) {
+AST* AST::stat_while() {
     //        for
     // init?, ?, ?, block.
 
@@ -278,114 +275,71 @@ void AST::stat_while(AST *ast) {
     // exp          block;
 
     // expressions: should contains operand and operator(missing)
-    ast->ast_type_ = ASTType ::AST_WHILE;
+    AST* ast = new AST(ASTType ::AST_WHILE);
+    next(TokenType::KEY_WHILE);
     next(TokenType::LEFT_PARENTHESIS);
     ast->sub_asts_.push_back(ast->exp(-1));
     next(TokenType::RIGHT_PARENTHESIS);
     next_check(TokenType::LEFT_BRACE);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
-    ast->stat(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(stat());
+    return ast;
 }
-void AST::stat_function(AST *ast) {
+AST* AST::stat_function() {
     //    func
     // args block
-    ast->ast_type_ = ASTType ::AST_FUN;
+    AST* ast = new AST(ASTType ::AST_FUN);
+    next(TokenType::KEY_FUNCTION);
     ast->ast_value_.str = next(TokenType::SYMBOL)->values_;
-
     next(TokenType::LEFT_PARENTHESIS);
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_ARGS));
-    ast->args(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(ast->args());
     next(TokenType::RIGHT_PARENTHESIS);
-
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_BLOCK));
-    ast->stat(ast->sub_asts_.back());
+    ast->sub_asts_.push_back(ast->stat());
+    return ast;
 }
-void AST::stat_exp(AST *ast) {
+AST* AST::stat_exp() {
     //                      assign
     //      sym                             exp
     // complex symbol(index/keystring)    int/string/init-args.
-    if(peek_type() == TokenType::LEFT_PARENTHESIS){
-        ast->ast_type_ = ASTType ::AST_CALL;
-        ast->ast_value_.str = last_value();
-        next(TokenType::LEFT_PARENTHESIS);
-        pass_args(ast, TokenType::RIGHT_PARENTHESIS);
-        next(TokenType::RIGHT_PARENTHESIS);
-    }else{
-        ast->sub_asts_.push_back(new AST(ASTType ::AST_SYM, last_value()));
-        auto sym = ast->sub_asts_.back();
-        auto type = peek_type();
-        while (type != TokenType::OP_ASSIGN){
-            switch(type){
-                case TokenType::LEFT_BRACKET:
-                    next(TokenType::LEFT_BRACKET);
-                    sym->sub_asts_.push_back(new AST(ASTType::AST_INTEGER));
-                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
-                    next(TokenType::RIGHT_BRACKET);
-                    break;
-                case TokenType::DOT:
-                    next(TokenType::DOT);
-                    sym->sub_asts_.push_back(new AST(ASTType::AST_STRING));
-                    sym->sub_asts_.back()->sub_asts_.push_back(ast->exp(-1));
-                    break;
-                default:
-                    next_check(TokenType::OP_ASSIGN);
-            }
-            type = peek_type();
-        }
-        next(TokenType::OP_ASSIGN);
-        ast->ast_type_ = ASTType ::AST_ASSIGN;
-        ast->sub_asts_.push_back(ast->exp(-1));
-    }
+    AST* ast = exp(-1);
     next(TokenType::SEMICOLON);
+    return ast;
 }
-void AST::stat_return(AST *ast) {
+AST* AST::stat_return() {
     //   return
     // exp
-    ast->ast_type_ = ASTType ::AST_RETURN;
+    AST* ast = new AST(ASTType ::AST_RETURN);
+    next(TokenType::KEY_RETURN);
     if(peek_type() != TokenType::SEMICOLON) {
         ast->sub_asts_.push_back(ast->exp(-1));
     }
     next(TokenType::SEMICOLON);
+    return ast;
 }
 
-void AST::stat_brace(AST *ast) {
-    ast->ast_type_ = ASTType ::AST_BLOCK;
+AST* AST::stat_brace() {
+    AST* ast = new AST(ASTType ::AST_BLOCK);
+    next(TokenType::LEFT_BRACE);
     while (peek_type() != TokenType::RIGHT_BRACE) {
-        ast->sub_asts_.push_back(new AST());
-        ast->stat(ast->sub_asts_.back());
+        ast->sub_asts_.push_back(ast->stat());
     }
     next(TokenType::RIGHT_BRACE);
-}
-void AST::stat_print(AST *ast) {
-    next(TokenType::LEFT_PARENTHESIS);
-    ast->ast_type_ = ASTType ::AST_SYM;
-    ast->sub_asts_.push_back(ast->exp(-1));
-    next(TokenType::RIGHT_PARENTHESIS);
-    next(TokenType::SEMICOLON);
-}
-void AST::stat_input(AST *ast) {
-    next(TokenType::LEFT_PARENTHESIS);
-    ast->ast_type_ = ASTType ::AST_SYM;
-    ast->sub_asts_.push_back(new AST(ASTType ::AST_SYM));
-    ast->sub_asts_.back()->ast_value_.str = next(TokenType::SYMBOL)->values_;
-    next(TokenType::RIGHT_PARENTHESIS);
-    next(TokenType::SEMICOLON);
+    return ast;
 }
 
 
-void AST::stat(AST* ast){
-    auto* current = tokens_[consumed_index_ ++];
-    static std::map<TokenType , std::function<void(AST*)> > cb = {
-            {TokenType::KEY_IF, std::bind(&AST::stat_if, ast, std::placeholders::_1)},
-            {TokenType::KEY_WHILE, std::bind(&AST::stat_while, ast, std::placeholders::_1)},
-            {TokenType::KEY_FUNCTION, std::bind(&AST::stat_function, ast, std::placeholders::_1)},
-            {TokenType::KEY_RETURN, std::bind(&AST::stat_return, ast, std::placeholders::_1)},
-            {TokenType::LEFT_BRACE, std::bind(&AST::stat_brace, ast, std::placeholders::_1)},
-            {TokenType::SYMBOL, std::bind(&AST::stat_exp, ast, std::placeholders::_1)},
+AST* AST::stat(){
+    auto* current = tokens_[consumed_index_];
+    static std::map<TokenType , std::function<AST*()> > cb = {
+            {TokenType::KEY_IF, std::bind(&AST::stat_if, this)},
+            {TokenType::KEY_WHILE, std::bind(&AST::stat_while, this)},
+            {TokenType::KEY_FUNCTION, std::bind(&AST::stat_function, this)},
+            {TokenType::KEY_RETURN, std::bind(&AST::stat_return, this)},
+            {TokenType::LEFT_BRACE, std::bind(&AST::stat_brace, this)},
+            {TokenType::SYMBOL, std::bind(&AST::stat_exp, this)},
     };
 
     ASSERT_EXIT(cb.count((TokenType)current->token_type_), "unexpected token: %d", static_cast<int>(current->token_type_));
-    cb[(TokenType)current->token_type_](ast);
+    return cb[(TokenType)current->token_type_]();
 }
 
 AST* AST::build(Tokenizer* tokenizer) {
@@ -394,13 +348,12 @@ AST* AST::build(Tokenizer* tokenizer) {
 
     consumed_index_ = 0;
     tokens_ = tokenizer->tokens_;
-    ASSERT_EXIT(tokens_.size() != 0, "no taken can be consumed.");
+    ASSERT_EXIT(tokens_.size() != 0, "no token can be consumed.");
 
     // add builtin functions into env.
     ast_type_ = ASTType ::AST_BLOCK;
     while(consumed_index_ < tokens_.size()){
-        sub_asts_.push_back(new AST());
-        stat(sub_asts_.back());
+        sub_asts_.push_back(stat());
     }
     return this;
 }
@@ -689,6 +642,8 @@ Symbol eval_mod(AST* ast){
     }
     return result;
 }
+
+
 // ------------------------------------------------------------------------------------------ interpret  ------------------------------------------------------------------------------------------
 
 Symbol AST::eval_function(AST* ast){
@@ -863,6 +818,8 @@ Symbol AST::eval_exp(AST* ast){
     }
     else if(ast->ast_type_ == ASTType::AST_CALL){
         result = eval_call(ast);
+    }else if(ast->ast_type_ == ASTType::AST_ASSIGN){
+        result = eval_assign(ast);
     }
     else if(arith_callback_.count(ast->ast_type_)){
         result = arith_callback_[ast->ast_type_](ast);
@@ -946,6 +903,7 @@ Symbol AST::eval_if(AST* ast){
 }
 Symbol AST::eval_call(AST* ast){
 
+    // built-in functions
     if(is_builtin(ast)){
         return eval_builtin(ast);
     }
@@ -956,16 +914,18 @@ Symbol AST::eval_call(AST* ast){
         symbols.push_back(tmp);
     }
 
+    // new env.
     env_.current_.emplace_back();
     auto& local = env_.current_.back();
     auto fname = ast->ast_value_.str;
     ASSERT_EXIT(env_.funcs_.count(fname), "use undefined symbol(%s)", fname.c_str());
     auto f = env_.funcs_[fname];
-    ASSERT_EXIT(ast->sub_asts_.size() == f.args_symbol_.size(), "use undefined symbol(%s)", fname.c_str());
+    ASSERT_EXIT(ast->sub_asts_.size() == f.args_symbol_.size(), "number of args not same (%s)", fname.c_str());
     for(size_t i = 0; i < ast->sub_asts_.size(); ++ i) {
         local[f.args_symbol_[i]] = symbols[i];
     }
     auto result_symbol = interpret(f.ast);
+    // restore env.
     env_.current_.pop_back();
     return result_symbol;
 }
@@ -992,9 +952,6 @@ Symbol AST::interpret(AST* block) {
         if(symbol.return_flag_) return symbol;
     }
     return symbol;
-    // FIXME: if(){} dele brace in script.
-    // TODO: enter block like(if/while) cover the local variable;
-    // TODO: wrapper exp and support more operate and conversion of operands
 }
 
 
