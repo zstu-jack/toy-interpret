@@ -53,8 +53,7 @@ function fib(x){
     if(x <= 2){
         return 1;
     }
-    dp[x] = fib(x-1) + fib(x-2) + g;
-    return dp[x];
+    return dp[x] = fib(x-1) + fib(x-2) + g;
 }
 
 start=time();

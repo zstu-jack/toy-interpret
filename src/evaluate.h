@@ -90,21 +90,19 @@ typedef struct AST{
     Token* next(TokenType token_type);
     std::string last_value();
 
-    void args(AST* ast);
+    AST* args();
     void pass_args(AST* ast, TokenType end);
 
     AST* exp_elem();
     AST* exp(int pre = -1);
 
-    void stat(AST* ast);    // stats -> stat | stat {stats}
-    void stat_if(AST *ast);
-    void stat_while(AST *ast);
-    void stat_return(AST *ast);
-    void stat_brace(AST *ast);
-    void stat_print(AST *ast);
-    void stat_input(AST *ast);
-    void stat_function(AST *ast);
-    void stat_exp(AST *ast);
+    AST* stat();    // stats -> stat | stat {stats}
+    AST* stat_if();
+    AST* stat_while();
+    AST* stat_return();
+    AST* stat_brace();
+    AST* stat_function();
+    AST* stat_exp();
 
     AST* build(Tokenizer* tokenizer);
 
