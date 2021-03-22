@@ -1,13 +1,15 @@
 #include "define.h"
 
-std::map<std::string, TokenType> keywords_token = {
+std::string keywords_operator_start = "|&!=><";
+std::string keywords_operator = std::string("=!<>+-*/|&^");
+
+std::map<std::string, TokenType> keywords_2_token_type = {
         {"function", TokenType::KEY_FUNCTION},
         {"if", TokenType::KEY_IF},
         {"while", TokenType::KEY_WHILE},
         {"return",TokenType::KEY_RETURN},
 };
-std::string op_keywords = std::string("=!<>+-*/|&^");
-std::map<std::string, TokenType> op_char_token = {
+std::map<std::string, TokenType> operator_2_token_type = {
         /*
             | -> ||
             & -> &&
@@ -36,7 +38,7 @@ std::map<std::string, TokenType> op_char_token = {
         {"%", TokenType ::OP_MOD},
         {"=", TokenType ::OP_ASSIGN},
 };
-std::map<std::string, TokenType> easy_char_token = {
+std::map<std::string, TokenType> discarded_characters_2_token_type = {
         {"[", TokenType ::LEFT_BRACKET},
         {"]", TokenType ::RIGHT_BRACKET},
         {"{", TokenType ::LEFT_BRACE},
@@ -50,7 +52,13 @@ std::map<std::string, TokenType> easy_char_token = {
         {"\"", TokenType ::DQUOTATION},
 };
 
-std::map<TokenType ,int> op_precedences = {
+
+
+
+
+
+
+std::map<TokenType ,int> operator_precedences = {
         {TokenType::OP_ASSIGN,0},
         {TokenType::OP_OR,1},
         {TokenType::OP_AND,2},
@@ -148,7 +156,7 @@ std::map<TokenType, std::string> tokentype_2_string{
         {TokenType ::BUILTIN_PRINT, "print"},
 };
 
-std::map<ASTType, std::string> asttype_2_str_ = {
+std::map<ASTType, std::string> asttype_2_string = {
         {ASTType::AST_BLOCK, "block"},
         {ASTType::AST_IF,"if"},
         {ASTType::AST_WHILE,"while"},

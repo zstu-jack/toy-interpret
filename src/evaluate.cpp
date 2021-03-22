@@ -212,7 +212,7 @@ AST* AST::exp(int pre){
         || tokenType == TokenType::COMMA){
             break;
         }
-        int nxt_precedence = op_precedences[tokenType];
+        int nxt_precedence = operator_precedences[tokenType];
         if(nxt_precedence < pre){
             break;
         }
@@ -245,7 +245,7 @@ AST* AST::args(){
         auto token = next(TokenType::SYMBOL);
         ast->sub_asts_.push_back(new AST(ASTType::AST_SYM));
         ast->sub_asts_.back()->ast_value_.str = token->values_;
-        ASSERT_EXIT(keywords_token.count(token->values_) == 0, "unexpected keyword(%s) in function args(%d)\n", token->values_.c_str(), i);
+        ASSERT_EXIT(keywords_2_token_type.count(token->values_) == 0, "unexpected keyword(%s) in function args(%d)\n", token->values_.c_str(), i);
         if(peek_type() == TokenType::RIGHT_PARENTHESIS){
             break;
         }
@@ -359,16 +359,16 @@ AST* AST::build(Tokenizer* tokenizer) {
 }
 
 void AST::print(AST* ast){
-    printf("%s\n", asttype_2_str_[ast->ast_type_].c_str());
+    printf("%s\n", asttype_2_string[ast->ast_type_].c_str());
     for(size_t i = 0; i < ast->sub_asts_.size(); ++ i){
-        printf("    %d,%s\n", (int32_t)i, asttype_2_str_[ast->sub_asts_[i]->ast_type_].c_str());
+        printf("    %d,%s\n", (int32_t)i, asttype_2_string[ast->sub_asts_[i]->ast_type_].c_str());
     }
     printf("\n\n");
 }
 
 void AST::print(int deep, AST* ast){
     for(int i = 0; i < deep; ++ i) printf("\t");
-    printf("%s", asttype_2_str_[ast->ast_type_].c_str());
+    printf("%s", asttype_2_string[ast->ast_type_].c_str());
     switch (ast->ast_type_){
         case ASTType ::AST_INTEGER: {
             printf("(%lld)\n", ast->ast_value_.num);
@@ -652,7 +652,7 @@ Symbol AST::eval_function(AST* ast){
     auto& proto = env_.funcs_[ast->ast_value_.str];
     for(size_t i = 0; i < ast->sub_asts_[0]->sub_asts_.size(); i ++){
         ASSERT_EXIT(ast->sub_asts_[0]->sub_asts_[i]->ast_type_ == ASTType::AST_SYM, "arg(%d) not a symbol (type:%s)",
-                    (int32_t)i, asttype_2_str_[ast->sub_asts_[0]->sub_asts_[i]->ast_type_].c_str());
+                    (int32_t)i, asttype_2_string[ast->sub_asts_[0]->sub_asts_[i]->ast_type_].c_str());
         proto.args_symbol_.push_back(ast->sub_asts_[0]->sub_asts_[i]->ast_value_.str);
     }
     proto.ast = ast->sub_asts_[1];
@@ -691,8 +691,8 @@ void AST::print_symbol(std::string name, const Symbol& symbol){
     }
     else{
 //                print(ast);
-        ASSERT_EXIT(false,"symbol can't be print(sym:%s)(type=%s)(num=%lld)(dec=%.2f)",
-                    name.c_str(), asttype_2_str_[symbol.value_type_].c_str(), symbol.num, symbol.dec);
+        ASSERT_EXIT(false, "symbol can't be print(sym:%s)(type=%s)(num=%lld)(dec=%.2f)",
+                    name.c_str(), asttype_2_string[symbol.value_type_].c_str(), symbol.num, symbol.dec);
     }
 }
 
@@ -812,7 +812,7 @@ Symbol AST::eval_exp(AST* ast){
                 ASSERT_EXIT(result.object->obj_.count(idx), "no such index(%d) in object(%s)\n", idx, result.str.c_str());
                 result = result.object->obj_[idx];
             }else{
-                ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM's son node\n", asttype_2_str_[subs[i]->ast_type_].c_str());
+                ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM's son node\n", asttype_2_string[subs[i]->ast_type_].c_str());
             }
         }
     }
@@ -825,7 +825,7 @@ Symbol AST::eval_exp(AST* ast){
         result = arith_callback_[ast->ast_type_](ast);
     }else{
         print(ast);
-        ASSERT_EXIT(false, "unexpected asttype(%s)\n", asttype_2_str_[ast->ast_type_].c_str());
+        ASSERT_EXIT(false, "unexpected asttype(%s)\n", asttype_2_string[ast->ast_type_].c_str());
     }
     return result;
 }
@@ -871,7 +871,7 @@ Symbol AST::eval_assign(AST* ast){
             // TODO: check type;
             idx = eval_exp(ast->sub_asts_[0]).num;
         }else{
-            ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM(%s) son node\n", asttype_2_str_[ast->ast_type_].c_str(), symbol_name.c_str());
+            ASSERT_EXIT(false, "unexpected ASTType(%s) as SYM(%s) son node\n", asttype_2_string[ast->ast_type_].c_str(), symbol_name.c_str());
         }
         psym = &(psym->object->obj_[idx]);
     }

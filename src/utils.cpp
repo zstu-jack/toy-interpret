@@ -7,24 +7,22 @@
 
 std::string read_from_file(const char* filename){
     ASSERT_EXIT(filename != nullptr, "filename == nullptr");
+    std::string text = "";
     std::ifstream is (filename, std::ifstream::binary);
     if (is) {
-        std::string text = "";
-        std::ifstream is (filename, std::ifstream::binary);
-        if (is) {
-            is.seekg (0, is.end);
-            int32_t length = is.tellg();
-            is.seekg (0, is.beg);
+        is.seekg (0, is.end);
+        int32_t length = is.tellg();
+        is.seekg (0, is.beg);
 
-            char* buffer = new char [length];
-            is.read (buffer,length);
-            is.close();
+        char* buffer = new char [length];
+        is.read (buffer,length);
+        is.close();
 
-            text = std::string(buffer, length);
-            delete[] buffer;
-            return text;
-        }
+        text = std::string(buffer, length);
+        delete[] buffer;
+        return text;
     }
+
     ASSERT_EXIT(0, "file not exist");
 }
 
