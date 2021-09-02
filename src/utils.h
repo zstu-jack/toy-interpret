@@ -6,7 +6,7 @@
 
 std::string read_from_file(const char* filename);
 
-void filter_char(std::string& text, const char c);
+void remove_char(std::string& text, const char c);
 
 #endif //UTILS_H
 

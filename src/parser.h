@@ -18,23 +18,26 @@ public:
 struct Tokenizer{
     Tokenizer();
 
-    void add_parsing_pos(size_t& p, size_t offset = 1);
+    void move(size_t offset = 1);
+    bool linefeed();
+    char now();
+    char nxt();
     void parse(const std::string& text);
-    void print();
-    void print_lines();
+
+    void print_tokens();
+    void print_line_tokens();
 
     bool is_symbol_start(char c);
     bool is_digit(char c);
     bool is_symbol(char c);
     bool is_operator(char c);
-    bool eat_linefeed();
 
-    std::vector<Token*> tokens_;
+    std::vector<Token> _tokens;
 
-    std::string program_;
-    std::map<int, std::string> line2line_str_;
+    std::string _program;
+    std::map<int, std::string> _line2line_str;
 
-    size_t _parsing_pos, _l_parsing_pos;
+    size_t _pos;
     size_t _line_number, _line_start_pos;
 };
 

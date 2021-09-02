@@ -114,15 +114,15 @@ enum class ASTType{
 
 extern std::map<std::string, TokenType> discarded_characters_2_token_type;
 extern std::map<std::string, TokenType> keywords_2_token_type;
+
+extern std::string operators;
+extern std::string operators_multichar;
+extern std::map<TokenType, int> operator_precedences;
 extern std::map<std::string, TokenType> operator_2_token_type;
 
+extern std::map<TokenType, std::string> tokentype_2_string;
 extern std::map<TokenType, ASTType > tokentype_2_asttype_;
 
-extern std::string keywords_operator_start;
-extern std::string keywords_operator;
-extern std::map<TokenType, int> operator_precedences;
-
-extern std::map<TokenType, std::string> tokentype_2_string;
 extern std::map<ASTType, std::string> asttype_2_string;
 
 #endif //DEFINE_H
