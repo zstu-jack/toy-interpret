@@ -5,11 +5,10 @@
 #include <string>
 #include <map>
 
+#include "parser.h"
 #include "define.h"
 
 struct AST;
-struct Token;
-struct Tokenizer;
 struct Object;
 struct Symbol;
 enum class TokenType;
@@ -19,7 +18,6 @@ typedef struct FuncProto{
     AST* ast;
 }FuncProto;
 
-
 typedef struct Symbol{
     Symbol();
     ~Symbol();
@@ -27,18 +25,39 @@ typedef struct Symbol{
     Symbol(Symbol&& symbol);
     Symbol& operator=(const Symbol& symbol);
     Symbol& operator=(Symbol&& symbol);
+    void FieldCopy(const Symbol& symbol);
 
-    std::string str;
+    ASTType type_;
+
     long long num;
     double dec;
+    std::string str;
     Object* object;
-
     FuncProto func;
-    ASTType value_type_;
 
     int return_flag_;
     std::string tostring();
+
+    Symbol& operator+(const Symbol& symbol);
+    Symbol& operator-(const Symbol& symbol);
+    Symbol& operator*(const Symbol& symbol);
+    Symbol& operator/(const Symbol& symbol);
+    Symbol& operator%(const Symbol& symbol);
+    Symbol& operator||(const Symbol& symbol);
+    Symbol& operator&&(const Symbol& symbol);
+    Symbol& operator|(const Symbol& symbol);
+    Symbol& operator&(const Symbol& symbol);
+    Symbol& operator^(const Symbol& symbol);
+    Symbol& operator!=(const Symbol& symbol);
+    Symbol& operator==(const Symbol& symbol);
+    Symbol& operator>(const Symbol& symbol);
+    Symbol& operator>=(const Symbol& symbol);
+    Symbol& operator<(const Symbol& symbol);
+    Symbol& operator<=(const Symbol& symbol);
+    Symbol& operator<<(const Symbol& symbol);
+    Symbol& operator>>(const Symbol& symbol);
 }Symbol;
+extern std::map<ASTType , std::function<Symbol&(Symbol*, const Symbol&)> > arith_callback_;
 
 typedef struct Object{
     std::map<int, Symbol> obj_;
@@ -51,25 +70,6 @@ struct Env{
     Symbols global_;
     std::vector<Symbols> current_;
 };
-
-Symbol eval_or(AST* ast);
-Symbol eval_and(AST* ast);
-Symbol eval_bit_or(AST* ast);
-Symbol eval_bit_xor(AST* ast);
-Symbol eval_bit_and(AST* ast);
-Symbol eval_not_equal(AST* ast);
-Symbol eval_equal(AST* ast);
-Symbol eval_larger_equal(AST* ast);
-Symbol eval_larger(AST* ast);
-Symbol eval_less_equal(AST* ast);
-Symbol eval_less(AST* ast);
-Symbol eval_shl(AST* ast);
-Symbol eval_shr(AST* ast);
-Symbol eval_add(AST* ast);
-Symbol eval_sub(AST* ast);
-Symbol eval_mul(AST* ast);
-Symbol eval_div(AST* ast);
-Symbol eval_mod(AST* ast);
 
 typedef struct AST{
     AST();
@@ -86,25 +86,35 @@ typedef struct AST{
 
     TokenType peek_type();
     std::string peek_value();
-    void next_check(TokenType token_type);
-    Token* next(TokenType token_type);
+    void check_next(TokenType token_type);
+    Token next(TokenType token_type);
     std::string last_value();
 
-    AST* args();
-    void pass_args(AST* ast, TokenType end);
-
-    AST* exp_elem();
-    AST* exp(int pre = -1);
-
-    AST* stat();    // stats -> stat | stat {stats}
+    /**
+     * stats    -> stat | stat {stats}
+     * stat     ->  if
+     *              while
+     *              function
+     *              symbol (function call / expression / ...)
+     *              return
+     *              stats ( {} )
+     *  if      -> (exp) { stats }
+     *  while   -> (exp) { stats }
+     *  function-> (args) { stats }
+     *  return  -> exp_semicolon / ;
+     *  exp_elem-> (), {}, integer, decimal, string, symbol
+     */
+    AST* stat();
+    AST* stat_block();
     AST* stat_if();
     AST* stat_while();
-    AST* stat_return();
-    AST* stat_brace();
     AST* stat_function();
-    AST* stat_exp();
-
-    AST* build(Tokenizer* tokenizer);
+    AST* stat_function_args();
+    AST* stat_exp_elem();
+    AST* stat_exp(int pre = -1);
+    AST* stat_exp_semicolon();
+    void stat_parameters_passed(AST* ast, TokenType end);
+    AST* stat_return();
 
     int is_builtin(AST* ast);
     Symbol eval_builtin(AST* ast);
@@ -117,11 +127,11 @@ typedef struct AST{
     Symbol eval_call(AST* ast);
     Symbol interpret(AST* ast);
 
+    AST* build(Tokenizer tokenizer);
+    static Tokenizer tokenizer_;
+    static std::vector<Token> tokens_;
+    static int32_t token_index_;
+    static Env env_;
 }AST;
-extern Tokenizer* tokenizer_;
-extern std::vector<Token *> tokens_;
-extern size_t consumed_index_;
-extern Env env_;
-extern std::map<ASTType , std::function<Symbol(AST*)>> arith_callback_;
 
 #endif //EVALUATE_H

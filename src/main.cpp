@@ -7,12 +7,6 @@
 
 #if defined(__linux__)
 #include <signal.h>
-#endif
-
-AST* blocks;
-Tokenizer* tokenizer;
-
-#if defined(__linux__)
 void sigint_handle(int sig_val)
 {
     fprintf(stdout, "receive SIG_INT, quit the program\n");
@@ -26,33 +20,30 @@ void init_sig()
 }
 #endif
 
-void init(){
+AST* blocks;
 
-    blocks = new AST;
-    tokenizer = new Tokenizer;
+void init(){
+    #if defined(__linux__)
+        init_sig();
+    #endif
 }
 
 int main(int argc, char* argvs[]) {
-#if defined(__linux__)
-    init_sig();
-#endif
 
-    init();
-
-    if(argc == 1){
+    if(argc != 2){
         std::cout << "usage: only parser file is supported for now" << std::endl;
         std::cout << "usage: binary program file (etc.. a.out example)" << std::endl;
         exit(0);
-        // interrupt.
     }
 
-    ASSERT_EXIT(argc == 2, "only one file supported for now");
+    Tokenizer tokenizer;
+    blocks = new AST;
     std::string program = read_from_file(argvs[1]);
-    tokenizer->parse(program);
+    tokenizer.parse(program);
 
 #ifdef DEBUG
-    tokenizer->print();
-    tokenizer->print_lines();
+    tokenizer.print_tokens();
+    tokenizer.print_line_tokens();
 #endif
 
     blocks = blocks->build(tokenizer);

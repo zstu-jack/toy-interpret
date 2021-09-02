@@ -17,18 +17,6 @@
         exit(-1);\
     }
 
-enum class ResultID{
-    SUCCESS = 0,
-    FATAL,
-
-};
-
-enum class SymbolType{
-    FUNCTION = 0,
-    INTEGER,
-    DECIMAL,
-    STRING,
-};
 
 enum class TokenType{
     SYMBOL = 0,
@@ -124,15 +112,17 @@ enum class ASTType{
     AST_MOD,
 };
 
-extern std::map<std::string, TokenType> easy_char_token;
-extern std::map<std::string, TokenType> keywords_token;
+extern std::map<std::string, TokenType> discarded_characters_2_token_type;
+extern std::map<std::string, TokenType> keywords_2_token_type;
 
-extern std::string op_keywords;
-extern std::map<std::string, TokenType> op_char_token;
-extern std::map<TokenType, int> op_precedences;
+extern std::string operators;
+extern std::string operators_multichar;
+extern std::map<TokenType, int> operator_precedences;
+extern std::map<std::string, TokenType> operator_2_token_type;
 
 extern std::map<TokenType, std::string> tokentype_2_string;
-extern std::map<ASTType, std::string> asttype_2_str_;
 extern std::map<TokenType, ASTType > tokentype_2_asttype_;
+
+extern std::map<ASTType, std::string> asttype_2_string;
 
 #endif //DEFINE_H
